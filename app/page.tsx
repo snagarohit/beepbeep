@@ -105,12 +105,12 @@ export default function TimerPage() {
   };
 
   return (
-    <div className="bg-background text-foreground min-h-screen flex flex-col items-center justify-center p-4 antialiased">
+    <div className="bg-background text-foreground h-screen h-[100dvh] flex flex-col items-center justify-center p-4 antialiased">
       <div className="absolute top-4 right-4">
         <ThemeToggle onThemeChange={handleThemeChange} />
       </div>
 
-      <main className="flex flex-col items-center justify-center flex-grow px-4">
+      <main className="flex flex-col items-center justify-center flex-1 px-4">
         <div className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center">
           <VisualTimer percentage={visualPercentage} onClick={handleVisualTimerClick} />
           <DigitalDisplay timeLeft={timeLeft} onIntervalChange={handleIntervalChange} timerStatus={timerStatus} />

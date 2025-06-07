@@ -105,19 +105,19 @@ export default function TimerPage() {
   };
 
   return (
-    <div className="bg-background text-foreground h-screen h-[100dvh] flex flex-col items-center justify-center p-4 antialiased">
-      <div className="absolute top-4 right-4">
+    <div className="bg-background text-foreground h-[100dvh] w-screen flex flex-col overflow-hidden antialiased">
+      <div className="absolute top-4 right-4 z-10">
         <ThemeToggle onThemeChange={handleThemeChange} />
       </div>
 
-      <main className="flex flex-col items-center justify-center flex-1 px-4">
+      <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center">
           <VisualTimer percentage={visualPercentage} onClick={handleVisualTimerClick} />
           <DigitalDisplay timeLeft={timeLeft} onIntervalChange={handleIntervalChange} timerStatus={timerStatus} />
         </div>
       </main>
 
-      <footer className="text-center p-4 text-xs text-muted-foreground">
+      <footer className="w-full text-center p-4 text-xs text-muted-foreground">
         <b>Designed</b> in <b>Cupertino</b> | <b>Naga Samineni</b>
       </footer>
 

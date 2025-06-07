@@ -19,6 +19,16 @@ export default function TimerPage() {
   const lastSecondRef = React.useRef<number>(0);
 
   React.useEffect(() => {
+    const setAppHeight = () => {
+      const doc = document.documentElement;
+      doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+    return () => window.removeEventListener('resize', setAppHeight);
+  }, []);
+
+  React.useEffect(() => {
     if (timerStatus !== 'RUNNING') {
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
@@ -105,7 +115,7 @@ export default function TimerPage() {
   };
 
   return (
-    <div className="bg-background text-foreground h-[100dvh] w-screen flex flex-col overflow-hidden antialiased">
+    <div className="bg-background text-foreground h-[var(--app-height)] w-screen flex flex-col overflow-hidden antialiased">
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle onThemeChange={handleThemeChange} />
       </div>

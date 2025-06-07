@@ -10,9 +10,9 @@ interface AudioPlayerProps {
 export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProps) {
   const audioContextRef = React.useRef<AudioContext | null>(null);
 
-  const playBeep = (type: 'single' | 'double') => {
+  const playBeep = React.useCallback((type: 'single' | 'double') => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     }
     const context = audioContextRef.current;
     
@@ -37,13 +37,13 @@ export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProp
       play(now + 0.15);
     }
     onPlaybackComplete();
-  };
+  }, [onPlaybackComplete]);
   
   React.useEffect(() => {
     if (playTrigger) {
       playBeep(playTrigger);
     }
-  }, [playTrigger]);
+  }, [playTrigger, playBeep]);
 
   return null;
 } 

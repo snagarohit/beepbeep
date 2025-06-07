@@ -115,7 +115,7 @@ export default function TimerPage() {
       <main className="flex flex-col items-center justify-center flex-grow">
         <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 flex items-center justify-center">
           <VisualTimer percentage={visualPercentage} />
-          
+          <DigitalDisplay timeLeft={timeLeft} /> 
         </div>
         
         <div className="flex items-center gap-4 mt-8 relative z-10">

@@ -4,13 +4,11 @@ import * as React from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VisualTimer } from "@/components/visual-timer";
 import { DigitalDisplay } from "@/components/digital-display";
-import { IntervalSelector } from "@/components/interval-selector";
-import { ControlButton } from "@/components/control-button";
 import { AudioPlayer } from "@/components/audio-player";
 
 export default function TimerPage() {
-  const [totalDuration, setTotalDuration] = React.useState<number>(300);
-  const [timeLeft, setTimeLeft] = React.useState<number>(300);
+  const [totalDuration, setTotalDuration] = React.useState<number>(0);
+  const [timeLeft, setTimeLeft] = React.useState<number>(0);
   const [timerStatus, setTimerStatus] = React.useState<'IDLE' | 'RUNNING' | 'PAUSED'>('IDLE');
   const [visualPercentage, setVisualPercentage] = React.useState(100);
   const [audioTrigger, setAudioTrigger] = React.useState<'single' | 'double' | null>(null);
@@ -66,7 +64,13 @@ export default function TimerPage() {
     setTimerStatus('PAUSED');
   };
 
-  const handlePlayPauseClick = () => {
+  const handleVisualTimerClick = () => {
+    if (totalDuration === 0) {
+      // Don't start timer if no duration is set, just play a beep to indicate selection needed
+      setAudioTrigger('single');
+      return;
+    }
+    
     setAudioTrigger('single');
     if (timerStatus === 'RUNNING') {
       pauseTimer();
@@ -96,12 +100,6 @@ export default function TimerPage() {
     setTimerStatus('RUNNING');
   };
   
-  const handleOpenChange = (open: boolean) => {
-    if (open && timerStatus === 'RUNNING') {
-      pauseTimer();
-    }
-  };
-
   const handleThemeChange = () => {
     setAudioTrigger('single');
   };
@@ -112,25 +110,15 @@ export default function TimerPage() {
         <ThemeToggle onThemeChange={handleThemeChange} />
       </div>
 
-      <main className="flex flex-col items-center justify-center flex-grow">
-        <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 flex items-center justify-center">
-          <VisualTimer percentage={visualPercentage} />
-          <DigitalDisplay timeLeft={timeLeft} /> 
-        </div>
-        
-        <div className="flex items-center gap-4 mt-8 relative z-10">
-          <IntervalSelector 
-            onValueChange={handleIntervalChange}
-            value={String(totalDuration)}
-            disabled={false}
-            onOpenChange={handleOpenChange}
-          />
-          <ControlButton status={timerStatus} onClick={handlePlayPauseClick} />
+      <main className="flex flex-col items-center justify-center flex-grow px-4">
+        <div className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center">
+          <VisualTimer percentage={visualPercentage} onClick={handleVisualTimerClick} />
+          <DigitalDisplay timeLeft={timeLeft} onIntervalChange={handleIntervalChange} timerStatus={timerStatus} />
         </div>
       </main>
 
       <footer className="text-center p-4 text-xs text-muted-foreground">
-        Built in San Francisco by <a href="mailto:snagarohit@gmail.com" className="underline">Naga Samineni</a>
+        <b>Designed</b> in <b>Cupertino</b> | <b>Naga Samineni</b>
       </footer>
 
       <AudioPlayer 

@@ -22,6 +22,13 @@ export function VisualTimer({ percentage, onClick }: VisualTimerProps) {
 
   return (
     <div
+      role="button"
+      aria-label={
+        percentage < 100 && percentage > 0
+          ? `Timer running, click to pause`
+          : `Timer paused or idle, click to start`
+      }
+      tabIndex={0}
       className="w-full h-full rounded-full relative cursor-pointer transition-all duration-200 ease-in-out
                  shadow-[0_12px_48px_rgba(0,0,0,0.15),inset_0_0_0_0px_var(--muted-foreground)]
                  hover:shadow-[0_16px_64px_rgba(0,0,0,0.22),inset_0_0_0_0px_var(--muted-foreground)]
@@ -30,6 +37,11 @@ export function VisualTimer({ percentage, onClick }: VisualTimerProps) {
                  dark:hover:shadow-[0_16px_64px_rgba(255,255,255,0.12),inset_0_0_0_0px_var(--muted-foreground)]"
       style={style}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick();
+        }
+      }}
     >
       <ClockMarkings />
       <InnerMarkings />

@@ -42,18 +42,32 @@ export function DigitalDisplay({ timeLeft, onIntervalChange, timerStatus }: Digi
     setOpen(!open); // Toggle for mobile
   };
 
-  const isRunning = timerStatus === 'RUNNING';
+  const getTopText = () => {
+    if (timerStatus === 'PAUSED') return 'BEEPING PAUSED';
+    if (timerStatus === 'RUNNING') return 'BEEPING IN';
+    return 'BEEP EVERY';
+  };
 
   return (
     <HoverCard open={open} onOpenChange={setOpen} openDelay={0} closeDelay={0}>
       <HoverCardTrigger asChild>
         <div 
+          role="button"
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label="Open interval selection menu"
+          tabIndex={0}
           className="absolute w-[40%] h-[40%] rounded-full bg-background flex flex-col items-center justify-center shadow-[inset_0_0_0_0px_var(--muted-foreground)] cursor-pointer"
           onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleClick();
+            }
+          }}
         >
           {/* Top text - changes based on timer status */}
-          <div className="text-[clamp(0.4rem,1vw,0.8rem)] font-mono text-muted-foreground tracking-[0.1em] uppercase mb-1">
-            {isRunning ? 'BEEPING IN' : 'BEEP EVERY'}
+          <div className="text-[clamp(0.5rem,1.5vw,0.8rem)] font-mono text-muted-foreground tracking-[0.1em] uppercase mb-1 text-center">
+            {getTopText()}
           </div>
           
           {/* Timer display */}
@@ -63,30 +77,33 @@ export function DigitalDisplay({ timeLeft, onIntervalChange, timerStatus }: Digi
           
           {/* Bottom text with chevron */}
           <div className="flex items-center gap-1 mt-1">
-            <span className="text-[clamp(0.4rem,1vw,0.8rem)] font-mono text-muted-foreground tracking-[0.1em] uppercase">
+            <span className="text-[clamp(0.5rem,1.5vw,0.8rem)] font-mono text-muted-foreground tracking-[0.1em] uppercase">
               MINUTES
             </span>
             <ChevronDown 
-              className={`w-[clamp(0.6rem,1.2vw,1rem)] h-[clamp(0.6rem,1.2vw,1rem)] text-muted-foreground transition-transform duration-200 ${
+              className={`w-[clamp(0.7rem,1.5vw,1rem)] h-[clamp(0.7rem,1.5vw,1rem)] text-muted-foreground transition-transform duration-200 ${
                 open ? 'rotate-180' : ''
               }`} 
             />
           </div>
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="w-48 p-3">
-        <div className="grid grid-cols-3 gap-2">
-          {intervals.map((interval) => (
-            <Button
-              key={interval.value}
-              variant="outline"
-              size="sm"
-              onClick={() => handleIntervalSelect(interval.value)}
-              className="h-8 text-xs"
-            >
-              {interval.label}
-            </Button>
-          ))}
+      <HoverCardContent className="w-48 p-3" aria-label="Interval selection options">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-center text-muted-foreground">Beep Every</p>
+          <div className="grid grid-cols-3 gap-2">
+            {intervals.map((interval) => (
+              <Button
+                key={interval.value}
+                variant="outline"
+                size="sm"
+                onClick={() => handleIntervalSelect(interval.value)}
+                className="h-8 text-xs"
+              >
+                {interval.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </HoverCardContent>
     </HoverCard>

@@ -1,6 +1,6 @@
 # Allow all user agents to crawl the site
 User-agent: *
 Allow: /
-
+ 
 # Point crawlers to the sitemap
 Sitemap: https://beepbeep.samineni.me/sitemap.xml 

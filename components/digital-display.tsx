@@ -13,6 +13,7 @@ interface DigitalDisplayProps {
   timeLeft: number;
   onIntervalChange: (value: string) => void;
   timerStatus: 'IDLE' | 'RUNNING' | 'PAUSED';
+  onOpenRequest: () => void;
 }
 
 const formatTime = (seconds: number) => {
@@ -30,7 +31,7 @@ const intervals = [
   { value: "1800", label: "30m" },
 ];
 
-export function DigitalDisplay({ timeLeft, onIntervalChange, timerStatus }: DigitalDisplayProps) {
+export function DigitalDisplay({ timeLeft, onIntervalChange, timerStatus, onOpenRequest }: DigitalDisplayProps) {
   const [open, setOpen] = React.useState(false);
 
   const handleIntervalSelect = (value: string) => {
@@ -39,6 +40,7 @@ export function DigitalDisplay({ timeLeft, onIntervalChange, timerStatus }: Digi
   };
 
   const handleClick = () => {
+    onOpenRequest();
     setOpen(!open); // Toggle for mobile
   };
 
@@ -90,7 +92,7 @@ export function DigitalDisplay({ timeLeft, onIntervalChange, timerStatus }: Digi
       </HoverCardTrigger>
       <HoverCardContent className="w-48 p-3" aria-label="Interval selection options">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-center text-muted-foreground">Beep Every</p>
+          <p className="text-sm font-medium text-left text-muted-foreground">Beep every</p>
           <div className="grid grid-cols-3 gap-2">
             {intervals.map((interval) => (
               <Button

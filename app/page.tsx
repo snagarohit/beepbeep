@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { VisualTimer } from "@/components/visual-timer";
 import { DigitalDisplay } from "@/components/digital-display";
 import { AudioPlayer } from "@/components/audio-player";
@@ -17,6 +18,8 @@ export default function TimerPage() {
   const timerEndTimeRef = React.useRef<number>(0);
   const timeRemainingOnPauseRef = React.useRef<number>(0);
   const lastSecondRef = React.useRef<number>(0);
+  const wakeLockAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const wakeLockSentinelRef = React.useRef<WakeLockSentinel | null>(null);
 
   React.useEffect(() => {
     const setAppHeight = () => {
@@ -25,8 +28,22 @@ export default function TimerPage() {
     };
     setAppHeight();
     window.addEventListener('resize', setAppHeight);
+    
+    // Create wake lock audio
+    const audio = new Audio('data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGliZU1wMy5vcmcAAAAPTEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV');
+    audio.loop = true;
+    wakeLockAudioRef.current = audio;
+
     return () => window.removeEventListener('resize', setAppHeight);
   }, []);
+
+  React.useEffect(() => {
+    if (timerStatus === 'RUNNING') {
+      wakeLockAudioRef.current?.play().catch(e => console.error("Wake lock audio failed:", e));
+    } else {
+      wakeLockAudioRef.current?.pause();
+    }
+  }, [timerStatus]);
 
   React.useEffect(() => {
     if (timerStatus !== 'RUNNING') {
@@ -75,23 +92,17 @@ export default function TimerPage() {
   };
 
   const handleVisualTimerClick = () => {
-    if (totalDuration === 0) {
-      // Don't start timer if no duration is set, just play a beep to indicate selection needed
-      setAudioTrigger('single');
+    if (timerStatus === 'IDLE') {
+      // On first click, start "beep every 5 minutes"
+      handleIntervalChange("300");
       return;
     }
-    
+
     setAudioTrigger('single');
     if (timerStatus === 'RUNNING') {
       pauseTimer();
-    } else {
-      if (timerStatus === 'PAUSED') {
-        timerEndTimeRef.current = Date.now() + timeRemainingOnPauseRef.current;
-      } else { // IDLE
-        timerEndTimeRef.current = Date.now() + totalDuration * 1000;
-        setTimeLeft(totalDuration);
-        setVisualPercentage(100);
-      }
+    } else { // PAUSED
+      timerEndTimeRef.current = Date.now() + timeRemainingOnPauseRef.current;
       lastSecondRef.current = Math.ceil((timerEndTimeRef.current - Date.now()) / 1000);
       setTimerStatus('RUNNING');
     }
@@ -114,21 +125,76 @@ export default function TimerPage() {
     setAudioTrigger('single');
   };
 
+  const onDigitalDisplayClick = () => {
+    setAudioTrigger('single');
+  };
+
+  // Hybrid Wake Lock Logic
+  React.useEffect(() => {
+    const acquireWakeLock = async () => {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockSentinelRef.current = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.error('Failed to acquire screen wake lock, falling back to audio.', err);
+          wakeLockAudioRef.current?.play().catch(e => console.error("Wake lock audio fallback failed:", e));
+        }
+      } else {
+        wakeLockAudioRef.current?.play().catch(e => console.error("Wake lock audio fallback failed:", e));
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLockSentinelRef.current) {
+        await wakeLockSentinelRef.current.release();
+        wakeLockSentinelRef.current = null;
+      }
+      wakeLockAudioRef.current?.pause();
+    };
+    
+    if (timerStatus === 'RUNNING') {
+      acquireWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && timerStatus === 'RUNNING') {
+        acquireWakeLock();
+      } else {
+        releaseWakeLock();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock(); // Clean up on component unmount
+    };
+  }, [timerStatus]);
+
   return (
     <div className="bg-background text-foreground h-[var(--app-height)] w-screen flex flex-col overflow-hidden antialiased">
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <ThemeToggle onThemeChange={handleThemeChange} />
+        <FullscreenToggle onToggle={handleThemeChange} />
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center">
           <VisualTimer percentage={visualPercentage} onClick={handleVisualTimerClick} />
-          <DigitalDisplay timeLeft={timeLeft} onIntervalChange={handleIntervalChange} timerStatus={timerStatus} />
+          <DigitalDisplay 
+            timeLeft={timeLeft} 
+            onIntervalChange={handleIntervalChange} 
+            timerStatus={timerStatus}
+            onOpenRequest={onDigitalDisplayClick} 
+          />
         </div>
       </main>
 
       <footer className="w-full text-center p-4 text-xs text-muted-foreground">
-        <b>Designed</b> in <b>Cupertino</b> | <b>Naga Samineni</b>
+        <b>Designed</b> by <b>Naga Samineni</b> in <b>Cupertino</b>
       </footer>
 
       <AudioPlayer 

@@ -2,20 +2,15 @@
 
 import * as React from 'react';
 
-export interface AudioTriggerPayload {
-  count: number;
-  volume?: number;
-}
-
 interface AudioPlayerProps {
-  playTrigger: AudioTriggerPayload | null;
+  playTrigger: number | null; // Number of beeps to play
   onPlaybackComplete: () => void;
 }
 
 export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProps) {
   const audioContextRef = React.useRef<AudioContext | null>(null);
 
-  const playBeep = React.useCallback((payload: AudioTriggerPayload) => {
+  const playBeep = React.useCallback((beepCount: number) => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
     }
@@ -23,7 +18,6 @@ export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProp
     
     const play = (time: number) => {
       const frequencies = [1024 * 4, 1024 * 8, 1024 * 12, 1024 * 16];
-      const volume = payload.volume ?? 0.25;
       
       frequencies.forEach(frequency => {
         const oscillator = context.createOscillator();
@@ -33,7 +27,7 @@ export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProp
         
         oscillator.frequency.value = frequency;
         gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(volume, time + 0.01);
+        gain.gain.linearRampToValueAtTime(0.25, time + 0.01);
         gain.gain.linearRampToValueAtTime(0, time + 0.1);
 
         oscillator.start(time);
@@ -42,14 +36,14 @@ export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProp
     };
 
     const now = context.currentTime;
-    for (let i = 0; i < payload.count; i++) {
-      play(now + i * 0.12);
+    for (let i = 0; i < beepCount; i++) {
+      play(now + i * 0.12); // Stagger beeps by 120ms
     }
     onPlaybackComplete();
   }, [onPlaybackComplete]);
   
   React.useEffect(() => {
-    if (playTrigger) {
+    if (playTrigger && playTrigger > 0) {
       playBeep(playTrigger);
     }
   }, [playTrigger, playBeep]);

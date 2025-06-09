@@ -6,43 +6,69 @@ import { InnerMarkings } from './inner-markings';
 
 interface VisualTimerProps {
   percentage: number;
-  onClick: () => void;
+  onTimeChange: (newTime: number) => void;
+  onDrag: () => void;
 }
 
-export function VisualTimer({ percentage, onClick }: VisualTimerProps) {
-  const style = {
-    '--percentage': percentage,
-    // The conic-gradient now uses foreground for the remaining time,
-    // and background for the elapsed time, with a border for visibility.
-    background: `conic-gradient(
-      var(--foreground) calc(var(--percentage, 0) * 1%),
-      var(--timer-elapsed-color) 0
-    )`,
-  } as React.CSSProperties;
+export function VisualTimer({ percentage, onTimeChange, onDrag }: VisualTimerProps) {
+  const timerRef = React.useRef<HTMLDivElement>(null);
+  const lastMinuteRef = React.useRef<number | null>(null);
+  
+  const handleInteraction = (clientX: number, clientY: number, isDragging: boolean) => {
+    if (!timerRef.current) return;
+
+    const rect = timerRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(clientY - centerY, clientX - centerX) + Math.PI / 2;
+    
+    let degrees = (angle * 180) / Math.PI;
+    if (degrees < 0) degrees += 360;
+    
+    let minute = Math.round(degrees / 6);
+    if (minute === 60) minute = 0;
+    
+    if (lastMinuteRef.current !== minute) {
+      const newTime = minute * 60;
+      onTimeChange(newTime);
+      if (isDragging) onDrag();
+      lastMinuteRef.current = minute;
+    }
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    lastMinuteRef.current = -1; // Force update on first interaction
+    handleInteraction(e.clientX, e.clientY, false);
+  };
+  
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (e.buttons !== 1) return;
+    handleInteraction(e.clientX, e.clientY, true);
+  };
+  
+  const onPointerUp = (e: React.PointerEvent) => {
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    lastMinuteRef.current = null;
+  };
 
   return (
     <div
-      role="button"
-      aria-label={
-        percentage < 100 && percentage > 0
-          ? `Timer running, click to pause`
-          : `Timer paused or idle, click to start`
+      ref={timerRef}
+      aria-label="Set timer duration by dragging or clicking the dial."
+      className="w-full h-full rounded-full relative cursor-grab active:cursor-grabbing
+                 shadow-[0_12px_48px_rgba(0,0,0,0.15)]
+                 dark:shadow-[0_12px_48px_rgba(255,255,255,0.08)]"
+      style={
+        {
+          '--percentage': percentage,
+          background: `conic-gradient(var(--foreground) calc(var(--percentage, 0) * 1%), var(--timer-elapsed-color) 0)`,
+          touchAction: 'none'
+        } as React.CSSProperties
       }
-      tabIndex={0}
-      className="w-full h-full rounded-full relative cursor-pointer transition-all duration-200 ease-in-out
-                 shadow-[0_12px_48px_rgba(0,0,0,0.15),inset_0_0_0_0px_var(--muted-foreground)]
-                 hover:shadow-[0_16px_64px_rgba(0,0,0,0.22),inset_0_0_0_0px_var(--muted-foreground)]
-                 hover:scale-[1.02] active:scale-[0.98]
-                 dark:shadow-[0_12px_48px_rgba(255,255,255,0.08),inset_0_0_0_0px_var(--muted-foreground)]
-                 dark:hover:shadow-[0_16px_64px_rgba(255,255,255,0.12),inset_0_0_0_0px_var(--muted-foreground)]
-                 focus:outline-none"
-      style={style}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onClick();
-        }
-      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
     >
       <ClockMarkings />
       <InnerMarkings />

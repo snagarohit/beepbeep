@@ -1,25 +1,55 @@
 "use client";
 
 import * as React from "react";
+import useLocalStorage from "@/hooks/use-local-storage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
+import { Settings, IntervalValue, IntervalType } from "@/components/settings";
 import { VisualTimer } from "@/components/visual-timer";
 import { DigitalDisplay } from "@/components/digital-display";
-import { AudioPlayer } from "@/components/audio-player";
+import { AudioPlayer, AudioTriggerPayload } from "@/components/audio-player";
 
 export default function TimerPage() {
-  const [totalDuration, setTotalDuration] = React.useState<number>(0);
-  const [timeLeft, setTimeLeft] = React.useState<number>(0);
+  const [totalDuration, setTotalDuration] = React.useState<number>(2700);
+  const [timeLeft, setTimeLeft] = React.useState<number>(2700);
   const [timerStatus, setTimerStatus] = React.useState<'IDLE' | 'RUNNING' | 'PAUSED'>('IDLE');
-  const [visualPercentage, setVisualPercentage] = React.useState(100);
-  const [audioTrigger, setAudioTrigger] = React.useState<'single' | 'double' | null>(null);
+  const [visualPercentage, setVisualPercentage] = React.useState((2700 / 3600) * 100);
+  const [audioTrigger, setAudioTrigger] = React.useState<AudioTriggerPayload | null>(null);
+  
+  // Persisted Settings
+  const [autoRestart, setAutoRestart] = useLocalStorage('timer-autoRestart', true);
+  const [intervalBeep, setIntervalBeep] = useLocalStorage<IntervalValue>('timer-intervalBeep', 5);
+  const [intervalType, setIntervalType] = useLocalStorage<IntervalType>('timer-intervalType', 'beep');
+  const [uiChime, setUiChime] = useLocalStorage('timer-uiChime', true);
 
   const animationFrameId = React.useRef<number | null>(null);
-  const timerEndTimeRef = React.useRef<number>(0);
+  const timerStartTimeRef = React.useRef<number>(0);
   const timeRemainingOnPauseRef = React.useRef<number>(0);
-  const lastSecondRef = React.useRef<number>(0);
+  const nextIntervalBeepTimeRef = React.useRef<number>(0);
   const wakeLockAudioRef = React.useRef<HTMLAudioElement | null>(null);
   const wakeLockSentinelRef = React.useRef<WakeLockSentinel | null>(null);
+
+  const playUiChime = React.useCallback((volume?: number) => {
+    if (uiChime) {
+      setAudioTrigger({ count: 1, volume });
+    }
+  }, [uiChime]);
+
+  const handleTimeUpdate = (newTimeInSeconds: number, fromAutoRestart = false) => {
+    if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+    window.speechSynthesis.cancel();
+    if (!fromAutoRestart) playUiChime();
+    
+    const newDuration = newTimeInSeconds === 0 ? 3600 : newTimeInSeconds;
+    timeRemainingOnPauseRef.current = 0;
+    setTotalDuration(newDuration);
+    setTimeLeft(newDuration);
+    setVisualPercentage((newDuration / 3600) * 100);
+    
+    timerStartTimeRef.current = Date.now();
+
+    setTimerStatus('RUNNING');
+  };
 
   React.useEffect(() => {
     const setAppHeight = () => {
@@ -29,12 +59,45 @@ export default function TimerPage() {
     setAppHeight();
     window.addEventListener('resize', setAppHeight);
     
-    // Create wake lock audio
-    const audio = new Audio('data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGliZU1wMy5vcmcAAAAPTEFNRTMuOTkuNVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV');
+    // Create wake lock audio with a proper silent audio data URL
+    const audio = new Audio();
+    // Create a minimal silent WAV file
+    const arrayBuffer = new ArrayBuffer(44);
+    const view = new DataView(arrayBuffer);
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, 8000, true);
+    view.setUint32(28, 8000, true);
+    view.setUint16(32, 1, true);
+    view.setUint16(34, 8, true);
+    writeString(36, 'data');
+    view.setUint32(40, 0, true);
+    
+    const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+    audio.src = URL.createObjectURL(blob);
     audio.loop = true;
+    audio.volume = 0;
     wakeLockAudioRef.current = audio;
 
-    return () => window.removeEventListener('resize', setAppHeight);
+    return () => {
+      window.removeEventListener('resize', setAppHeight);
+      if (audio.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audio.src);
+      }
+    };
   }, []);
 
   React.useEffect(() => {
@@ -46,87 +109,76 @@ export default function TimerPage() {
   }, [timerStatus]);
 
   React.useEffect(() => {
-    if (timerStatus !== 'RUNNING') {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
-      }
-      return;
-    }
-
     const animate = () => {
       const now = Date.now();
-      const remainingMs = timerEndTimeRef.current - now;
+      const elapsedMs = now - timerStartTimeRef.current;
+      const remainingMs = (totalDuration * 1000) - elapsedMs;
 
       if (remainingMs <= 0) {
-        timerEndTimeRef.current = Date.now() + totalDuration * 1000;
-        setAudioTrigger('double');
-        setTimeLeft(totalDuration);
-        lastSecondRef.current = totalDuration;
-        setVisualPercentage(100);
-      } else {
-        const currentSecond = Math.ceil(remainingMs / 1000);
-        if (currentSecond !== lastSecondRef.current) {
-          setTimeLeft(currentSecond);
-          lastSecondRef.current = currentSecond;
+        setAudioTrigger({ count: 6 }); 
+        if (autoRestart) {
+          handleTimeUpdate(totalDuration, true);
+        } else {
+          setTimerStatus('IDLE');
+          setTimeLeft(totalDuration);
+          setVisualPercentage((totalDuration / 3600) * 100);
         }
-        setVisualPercentage((remainingMs / (totalDuration * 1000)) * 100);
+      } else {
+        setTimeLeft(Math.ceil(remainingMs / 1000));
+        setVisualPercentage((remainingMs / 1000 / 3600) * 100);
+
+        if (intervalBeep !== 0 && now >= nextIntervalBeepTimeRef.current) {
+          if (intervalType === 'beep') {
+            setAudioTrigger({ count: 2 });
+          } else {
+            speakTime();
+          }
+          nextIntervalBeepTimeRef.current = nextIntervalBeepTimeRef.current + intervalBeep * 60 * 1000;
+        }
       }
       animationFrameId.current = requestAnimationFrame(animate);
     };
 
-    animationFrameId.current = requestAnimationFrame(animate);
+    if (timerStatus === 'RUNNING') {
+      animationFrameId.current = requestAnimationFrame(animate);
+    }
 
     return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
-      }
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [timerStatus, totalDuration]);
+  }, [timerStatus, totalDuration, autoRestart, intervalBeep, intervalType, handleTimeUpdate]);
+  
+  React.useEffect(() => {
+    if (timerStatus === 'RUNNING' && intervalBeep > 0) {
+      const elapsedMs = Date.now() - timerStartTimeRef.current;
+      const intervalsPassed = Math.floor(elapsedMs / (intervalBeep * 60 * 1000));
+      const nextBeepElapsed = (intervalsPassed + 1) * (intervalBeep * 60 * 1000);
+      nextIntervalBeepTimeRef.current = timerStartTimeRef.current + nextBeepElapsed;
+    }
+  }, [timerStatus, intervalBeep, totalDuration]);
 
   const pauseTimer = () => {
-    if (timerStatus !== 'RUNNING') return;
-    timeRemainingOnPauseRef.current = timerEndTimeRef.current - Date.now();
+    window.speechSynthesis.cancel();
+    timeRemainingOnPauseRef.current = (totalDuration * 1000) - (Date.now() - timerStartTimeRef.current);
     setTimerStatus('PAUSED');
   };
 
-  const handleVisualTimerClick = () => {
-    if (timerStatus === 'IDLE') {
-      // On first click, start "beep every 5 minutes"
-      handleIntervalChange("300");
-      return;
-    }
-
-    setAudioTrigger('single');
+  const handleDisplayClick = (isAutoStart = false) => {
+    if (!isAutoStart && uiChime) setAudioTrigger({ count: 1 });
+    
     if (timerStatus === 'RUNNING') {
       pauseTimer();
-    } else { // PAUSED
-      timerEndTimeRef.current = Date.now() + timeRemainingOnPauseRef.current;
-      lastSecondRef.current = Math.ceil((timerEndTimeRef.current - Date.now()) / 1000);
+    } else { 
+      if (timerStatus === 'PAUSED') {
+        const elapsedOnPause = (totalDuration * 1000) - timeRemainingOnPauseRef.current;
+        timerStartTimeRef.current = Date.now() - elapsedOnPause;
+        timeRemainingOnPauseRef.current = 0; // Reset after use
+      } else {
+        timerStartTimeRef.current = Date.now();
+        setTimeLeft(totalDuration);
+      }
       setTimerStatus('RUNNING');
     }
-  };
-
-  const handleIntervalChange = (value: string) => {
-    const newDuration = parseInt(value, 10);
-    setAudioTrigger('single');
-    setTotalDuration(newDuration);
-    setTimeLeft(newDuration);
-    setVisualPercentage(100);
-    
-    timerEndTimeRef.current = Date.now() + newDuration * 1000;
-    lastSecondRef.current = newDuration;
-    
-    setTimerStatus('RUNNING');
-  };
-  
-  const handleThemeChange = () => {
-    setAudioTrigger('single');
-  };
-
-  const onDigitalDisplayClick = () => {
-    setAudioTrigger('single');
   };
 
   // Hybrid Wake Lock Logic
@@ -137,10 +189,14 @@ export default function TimerPage() {
           wakeLockSentinelRef.current = await navigator.wakeLock.request('screen');
         } catch (err) {
           console.error('Failed to acquire screen wake lock, falling back to audio.', err);
-          wakeLockAudioRef.current?.play().catch(e => console.error("Wake lock audio fallback failed:", e));
+          if (wakeLockAudioRef.current) {
+            wakeLockAudioRef.current.play().catch(e => console.error("Wake lock audio fallback failed:", e));
+          }
         }
       } else {
-        wakeLockAudioRef.current?.play().catch(e => console.error("Wake lock audio fallback failed:", e));
+        if (wakeLockAudioRef.current) {
+          wakeLockAudioRef.current.play().catch(e => console.error("Wake lock audio fallback failed:", e));
+        }
       }
     };
 
@@ -174,27 +230,52 @@ export default function TimerPage() {
     };
   }, [timerStatus]);
 
+  // Speech Synthesis
+  const speakTime = () => {
+    // Cancel any ongoing speech to prevent overlap
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const utterance = new SpeechSynthesisUtterance(`The time is ${time}`);
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className="bg-background text-foreground h-[var(--app-height)] w-screen flex flex-col overflow-hidden antialiased">
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <ThemeToggle onThemeChange={handleThemeChange} />
-        <FullscreenToggle onToggle={handleThemeChange} />
+        <Settings
+          onOpen={playUiChime}
+          autoRestart={autoRestart}
+          onAutoRestartChange={setAutoRestart}
+          uiChime={uiChime}
+          onUiChimeChange={setUiChime}
+          intervalBeep={intervalBeep}
+          onIntervalBeepChange={setIntervalBeep}
+          intervalType={intervalType}
+          onIntervalTypeChange={setIntervalType}
+        />
+        <ThemeToggle onThemeChange={playUiChime} />
+        <FullscreenToggle onToggle={playUiChime} />
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center">
-          <VisualTimer percentage={visualPercentage} onClick={handleVisualTimerClick} />
+          <VisualTimer 
+            percentage={visualPercentage}
+            onTimeChange={handleTimeUpdate}
+            onDrag={() => playUiChime(0.125)}
+          />
           <DigitalDisplay 
             timeLeft={timeLeft} 
-            onIntervalChange={handleIntervalChange} 
+            onDisplayClick={handleDisplayClick} 
             timerStatus={timerStatus}
-            onOpenRequest={onDigitalDisplayClick} 
           />
         </div>
       </main>
 
       <footer className="w-full text-center p-4 text-xs text-muted-foreground">
-        <b>Designed</b> by <b>Naga Samineni</b> in <b>Cupertino</b>
+        <b>Designed</b> in <b>Cupertino</b> | <b>Naga Samineni</b>
       </footer>
 
       <AudioPlayer 

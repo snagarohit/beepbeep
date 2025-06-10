@@ -28,6 +28,8 @@ export default function TimerPage() {
   const nextIntervalBeepTimeRef = React.useRef<number>(0);
   const wakeLockAudioRef = React.useRef<HTMLAudioElement | null>(null);
   const wakeLockSentinelRef = React.useRef<WakeLockSentinel | null>(null);
+  const speechInteractionMadeRef = React.useRef(false);
+  const isInitialMount = React.useRef(true);
 
   const playUiChime = React.useCallback((volume?: number) => {
     if (uiChime) {
@@ -163,9 +165,17 @@ export default function TimerPage() {
     setTimerStatus('PAUSED');
   };
 
-  const handleDisplayClick = (isAutoStart = false) => {
-    if (!isAutoStart && uiChime) setAudioTrigger({ count: 1 });
+  const handleDisplayClick = () => {
+    // Always play chime on interaction
+    playUiChime();
     
+    // On the first user interaction, if speech is enabled, speak the time
+    // to satisfy mobile browser autoplay policies.
+    if (intervalType === 'speech' && !speechInteractionMadeRef.current) {
+      speakTime();
+      speechInteractionMadeRef.current = true;
+    }
+
     if (timerStatus === 'RUNNING') {
       pauseTimer();
     } else { 
@@ -230,16 +240,48 @@ export default function TimerPage() {
     };
   }, [timerStatus]);
 
-  // Speech Synthesis
+  // Mobile speech synthesis fix: wait for voices, set English voice
+  const voicesRef = React.useRef<SpeechSynthesisVoice[] | null>(null);
+  React.useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        voicesRef.current = voices;
+      }
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
   const speakTime = () => {
-    // Cancel any ongoing speech to prevent overlap
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
     const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const utterance = new SpeechSynthesisUtterance(`The time is ${time}`);
+    const voices = voicesRef.current || window.speechSynthesis.getVoices();
+    // Prefer English voice
+    const enVoice = voices.find(v => v.lang && v.lang.startsWith('en'));
+    if (enVoice) utterance.voice = enVoice;
     window.speechSynthesis.speak(utterance);
   };
+
+  React.useEffect(() => {
+    // This handles the case where the user enables speech via settings
+    // before any other interaction. This action counts as the user gesture.
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (intervalType === 'speech' && !speechInteractionMadeRef.current) {
+      speakTime();
+      speechInteractionMadeRef.current = true;
+    }
+  }, [intervalType]);
 
   return (
     <div className="bg-background text-foreground h-[var(--app-height)] w-screen flex flex-col overflow-hidden antialiased">

@@ -1,7 +1,7 @@
 {
-  "name": "BeepBeep - The Minimalist Visual Timer",
-  "short_name": "BeepBeep",
-  "description": "A simple, beautiful, and effective visual timer designed to help you focus, stay on task, and manage your time effectively. Perfect for Pomodoro, ADHD, work intervals, and study sessions.",
+  "name": "Beautiful Timer – The Minimalist Visual Timer",
+  "short_name": "BeautifulTimer",
+  "description": "Beautiful Timer is a simple, elegant, and effective visual timer designed to help you focus, stay on task, and celebrate every precious minute. Perfect for Pomodoro, ADHD, work intervals, and study sessions.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0a09",

@@ -1,59 +1,95 @@
-# BeepBeep: The ADHD Refocus Timer
+# Beautiful Timer: Time, Made Beautiful
 
-BeepBeep is a minimalist, web-based timer designed to help users, especially those with ADHD, maintain focus and manage time effectively. It combines a clean, intuitive interface with powerful, customizable features to create the perfect tool for work, study, and creative sessions.
+Beautiful Timer is not merely an application — it is an experience. Conceived in a sun-lit studio in Cupertino and crafted with the same obsessive attention to detail you would expect of a precision-milled watch, Beautiful Timer transforms the simple act of measuring time into a moment of quiet celebration.
 
-![BeepBeep Timer Screenshot](public/screenshot.png) 
+It began as a personal exploration: could a timer feel less like software and more like a beautifully weighted object? Could the gentle sweep of a second hand calm an anxious mind, helping neurodivergent thinkers slip effortlessly into focus? The result is an ad-free, delightfully tactile instrument that you will want to reach for again and again.
 
-*(Note: You will need to add a `screenshot.png` to the `public` directory for this image to display.)*
+![Beautiful Timer Light Mode](https://raw.githubusercontent.com/nagasam/beautiful-timer/main/public/screenshot-light.png)
+_Light Mode: an airy expanse of clarity._
 
-## ✨ Features
+![Beautiful Timer Dark Mode](https://raw.githubusercontent.com/nagasam/beautiful-timer/main/public/screenshot-dark.png)
+_Dark Mode: a pool of concentrated luminosity._
 
-- **Intuitive Visual Timer:** A simple, drag-to-set timer that provides a clear visual representation of time, adjustable from 1 to 60 minutes.
-- **Digital Display:** A large, easy-to-read digital clock that serves as the primary start/pause control.
-- **Interval Alerts:** Get a gentle nudge at recurring intervals to help you stay on track. Choose between a simple beep or a spoken announcement of the current time.
-- **Customizable Intervals:** Set interval alerts for every 1, 2, 5, 10, 15, 20, or 30 minutes.
-- **Speech Synthesis:** Instead of a beep, the timer can speak the current time, providing a less jarring alert.
-- **Looping Timer:** Automatically restart the timer when it finishes, perfect for continuous focus sessions.
-- **UI Chimes:** Subtle audio feedback for interactions, making the experience more tactile and responsive.
-- **Persistent Settings:** All your preferences are saved locally in your browser, so the timer is always set up just the way you like it.
-- **Screen Wake Lock:** Prevents your device from going to sleep while the timer is running, using the native Screen Wake Lock API with a silent audio fallback for wider compatibility.
-- **Mobile-First Design:** A fully responsive layout that works beautifully on any device.
-- **Rotation Lock:** On mobile, the timer automatically rotates to stay upright in landscape mode, but you can lock it in place if you prefer.
+---
 
-## 🚀 How to Use
+## A Symphony of Considered Details
 
-1.  **Set the Time:** Click and drag the circular timer to set your desired duration.
-2.  **Start/Pause:** Click the large digital time display in the center to start or pause the timer.
-3.  **Rotate Timer:** Click the **rotate icon** (🔄) to toggle the timer's orientation by 90 degrees, perfect for landscape viewing on mobile.
-4.  **Configure Settings:** Click the **wrench icon** (🔩) in the top right to access settings:
-    - **Loop Timer:** Toggle on to make the timer restart automatically.
-    - **UI Chime:** Toggle audio feedback for button clicks.
-    - **Interval Alert:** Use the slider to set how often you get a recurring alert. Set to 'Off' to disable.
-    - **Alert Type (Beep/Speech):** Choose your preferred style for interval alerts.
-    - **Rotation Lock:** Toggle to lock the timer's orientation on mobile devices.
+1. **The Continuous Sweep**  
+   Traditional timers tick; Beautiful Timer glides. Rendered at the refresh rate of your display, the conic gradient moves with a buttery smoothness reminiscent of the seconds hand on a Rolex Oyster Perpetual. Time becomes something you feel, not just read.
 
-## 🛠️ Getting Started for Developers
+2. **Multi-Tab Harmony**  
+   Whether you are orchestrating deep work across myriad browser windows or simply checking email, Beautiful Timer remains in perfect sync by harnessing the browser's `storage` events. Change the duration in one tab and every other tab breathes in unison.
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+3. **The Chorded Chime**  
+   Alerts should prompt, never jolt. Four pure sine waves — 4096 Hz, 8192 Hz, 12 288 Hz and 16 384 Hz — rise and fade in a concise duet, gently nudging you back to attention. Need something more verbal? Let the built-in speech synthesis fondly announce the time.
 
-First, install the dependencies:
+4. **Tactile Control**  
+   Drag the dial, feel the resistance, set intention. `Math.atan2` translates your movement into minutes and seconds, allowing a form of direct manipulation that makes conventional drop-downs feel archaic.
+
+5. **Orientation Intelligence**  
+   On mobile, Beautiful Timer pirouettes gracefully. Icons rotate, geometry recalibrates, and the interface remains impeccably legible — portrait or landscape.
+
+6. **Typography & Colour**  
+   We humanise pixels with Geist Sans and Geist Mono, paired with the warm neutrality of the `stone` palette in perceptually uniform OKLCH. The result is a canvas that disappears, letting your work shine.
+
+---
+
+### Built With
+
+• **Next.js & React** — A performant, server-first canvas.  
+• **TypeScript** — Reliability, articulated.  
+• **Tailwind CSS** — Visual consistency at the speed of thought.  
+• **shadcn/ui** — Unopinionated, accessible primitives.  
+• **Framer Motion** — Motion that feels alive.  
+• **Web Audio API** — Sound sculpted in real-time.  
+• **Vercel** — Effortless global delivery.
+
+---
+
+## Designed to Give, Not Take
+
+Beautiful Timer is forever *free*. No ads, no trackers, no dark patterns. It asks for nothing but your attention — and even that, only when you invite it.
+
+### If It Resonates
+
+Share it. Whisper its name to a friend wrestling with focus, tweet a screenshot of your tranquil workspace, or simply leave a star on the [GitHub repo](https://github.com/snagarohit/beautiful-timer). Word of mouth is how beautiful things travel.
+
+---
+
+## For the Curious Builder
+
+Clone, fork, embellish. Beautiful Timer was born of curiosity and is offered in the same spirit.
 
 ```bash
 npm install
+npm run dev
 ```
 
-Next, run the development server:
+Open `http://localhost:3000` and make it yours.
+
+---
+
+*Crafted with caffeine, curiosity, and a quiet reverence for the passing moment.*
+
+**No ads. No subscriptions. Just time, beautifully kept.**
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and go wild.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## The Bottom Line
+
+BeepBeep exists because I needed it to exist. If it helps you too, that's beautiful. If you know someone who might need a timer that actually gets it, send them here.
+
+We're all just trying to focus in a world that makes it really, really hard. Let's help each other out.
+
+---
+
+*Built with love, caffeine, and the stubborn belief that tools should work for humans, not the other way around.*
+
+**No ads. No tracking. No bullshit. Just a timer that works.**
 
 

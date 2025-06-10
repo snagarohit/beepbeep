@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Wrench } from "lucide-react";
+import { Wrench, Github } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -33,6 +33,7 @@ interface SettingsProps {
   onIntervalBeepChange: (value: IntervalValue) => void;
   intervalType: IntervalType;
   onIntervalTypeChange: (value: IntervalType) => void;
+  onIntervalTypePreview: (value: IntervalType) => void;
 }
 
 export function Settings({
@@ -46,6 +47,7 @@ export function Settings({
   onIntervalBeepChange,
   intervalType,
   onIntervalTypeChange,
+  onIntervalTypePreview,
 }: SettingsProps) {
   const handleSliderChange = (value: number[]) => {
     const newInterval = intervalSteps[value[0]];
@@ -55,7 +57,7 @@ export function Settings({
   
   const handleTypeChange = (value: IntervalType) => {
     onIntervalTypeChange(value);
-    onOpen();
+    onIntervalTypePreview(value);
   };
 
   const currentStepIndex = intervalSteps.indexOf(intervalBeep);
@@ -71,7 +73,19 @@ export function Settings({
       <PopoverContent className="w-80">
         <div className="grid gap-4">
           <div className="space-y-1">
-            <h4 className="font-medium leading-none">Settings</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium leading-none">Settings</h4>
+              <Button variant="ghost" size="icon" asChild>
+                <a
+                  href="https://github.com/snagarohit/beautiful-timer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="View Beautiful Timer on GitHub"
+                >
+                  <Github className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground">
               Configure timer, audio, and interface behavior.
             </p>

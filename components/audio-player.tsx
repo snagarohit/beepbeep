@@ -23,7 +23,7 @@ export function AudioPlayer({ playTrigger, onPlaybackComplete }: AudioPlayerProp
     
     const play = (time: number) => {
       const frequencies = [1024 * 4, 1024 * 8, 1024 * 12, 1024 * 16];
-      const volume = payload.volume ?? 0.25;
+      const volume = payload.volume ?? 1.0;
       
       frequencies.forEach(frequency => {
         const oscillator = context.createOscillator();

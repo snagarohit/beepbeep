@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Github, RotateCw, RotateCcw } from 'lucide-react';
-import useLocalStorage from "@/hooks/use-local-storage";
+import { RotateCw, RotateCcw } from 'lucide-react';
+
+// Component Imports
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { Settings, IntervalValue, IntervalType } from "@/components/settings";
@@ -11,239 +12,59 @@ import { DigitalDisplay } from "@/components/digital-display";
 import { AudioPlayer, AudioTriggerPayload } from "@/components/audio-player";
 import { Button } from "@/components/ui/button";
 
+// Hook Imports
+import useLocalStorage from "@/hooks/use-local-storage";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { useTimerAnimation } from "@/hooks/useTimerAnimation";
+
+/**
+ * The main page component for the BeepBeep timer application.
+ * It orchestrates the entire application state and renders all sub-components.
+ */
 export default function TimerPage() {
-  const [totalDuration, setTotalDuration] = React.useState<number>(2700);
-  const [timeLeft, setTimeLeft] = React.useState<number>(2700);
+  // Core timer state
+  const [totalDuration, setTotalDuration] = React.useState<number>(2700); // in seconds
+  const [timeLeft, setTimeLeft] = React.useState<number>(2700); // in seconds
   const [timerStatus, setTimerStatus] = React.useState<'IDLE' | 'RUNNING' | 'PAUSED'>('IDLE');
-  const [visualPercentage, setVisualPercentage] = React.useState((2700 / 3600) * 100);
-  const [audioTrigger, setAudioTrigger] = React.useState<AudioTriggerPayload | null>(null);
   
-  // Persisted Settings
+  // Persisted settings using a custom hook for localStorage
   const [autoRestart, setAutoRestart] = useLocalStorage('timer-autoRestart', true);
   const [intervalBeep, setIntervalBeep] = useLocalStorage<IntervalValue>('timer-intervalBeep', 5);
   const [intervalType, setIntervalType] = useLocalStorage<IntervalType>('timer-intervalType', 'beep');
   const [uiChime, setUiChime] = useLocalStorage('timer-uiChime', true);
+
+  // UI state
   const [isRotated, setIsRotated] = React.useState(false);
+  const [audioTrigger, setAudioTrigger] = React.useState<AudioTriggerPayload | null>(null);
 
-  const animationFrameId = React.useRef<number | null>(null);
+  // --- Refs for managing state within animation loops and event handlers ---
+  
+  /** Ref to store the system timestamp when the timer was started or resumed. */
   const timerStartTimeRef = React.useRef<number>(0);
-  const timeRemainingOnPauseRef = React.useRef<number>(0);
-  const nextIntervalBeepTimeRef = React.useRef<number>(0);
-  const wakeLockAudioRef = React.useRef<HTMLAudioElement | null>(null);
-  const wakeLockSentinelRef = React.useRef<WakeLockSentinel | null>(null);
-  const speechInteractionMadeRef = React.useRef(false);
-  const isInitialMount = React.useRef(true);
 
+  /** Ref to store the remaining time when the timer is paused. */
+  const timeRemainingOnPauseRef = React.useRef<number>(0);
+
+  /** Ref to ensure a user gesture has been made for speech synthesis to work on mobile. */
+  const speechInteractionMadeRef = React.useRef(false);
+
+  /** Ref to the main visual timer DOM element. */
+  const visualTimerRef = React.useRef<HTMLDivElement>(null);
+  
+  /**
+   * Plays a UI chime sound if enabled.
+   * @param volume - Optional volume level for the chime.
+   */
   const playUiChime = React.useCallback((volume?: number) => {
     if (uiChime) {
-      setAudioTrigger({ count: 1, volume });
+      setAudioTrigger({ count: 1, volume: volume ?? 0.5 });
     }
   }, [uiChime]);
 
-  const handleTimeUpdate = (newTimeInSeconds: number, fromAutoRestart = false) => {
-    if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-    window.speechSynthesis.cancel();
-    if (!fromAutoRestart) playUiChime();
-    
-    const newDuration = newTimeInSeconds === 0 ? 3600 : newTimeInSeconds;
-    timeRemainingOnPauseRef.current = 0;
-    setTotalDuration(newDuration);
-    setTimeLeft(newDuration);
-    setVisualPercentage((newDuration / 3600) * 100);
-    
-    timerStartTimeRef.current = Date.now();
-
-    setTimerStatus('RUNNING');
-  };
-
-  React.useEffect(() => {
-    const setAppHeight = () => {
-      const doc = document.documentElement;
-      doc.style.setProperty('--app-height', `${window.innerHeight}px`);
-    };
-    setAppHeight();
-    window.addEventListener('resize', setAppHeight);
-    
-    // Create wake lock audio with a proper silent audio data URL
-    const audio = new Audio();
-    // Create a minimal silent WAV file
-    const arrayBuffer = new ArrayBuffer(44);
-    const view = new DataView(arrayBuffer);
-    
-    // WAV header
-    const writeString = (offset: number, string: string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    };
-    
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, 8000, true);
-    view.setUint32(28, 8000, true);
-    view.setUint16(32, 1, true);
-    view.setUint16(34, 8, true);
-    writeString(36, 'data');
-    view.setUint32(40, 0, true);
-    
-    const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
-    audio.src = URL.createObjectURL(blob);
-    audio.loop = true;
-    audio.volume = 0;
-    wakeLockAudioRef.current = audio;
-
-    return () => {
-      window.removeEventListener('resize', setAppHeight);
-      if (audio.src.startsWith('blob:')) {
-        URL.revokeObjectURL(audio.src);
-      }
-    };
-  }, []);
-
-  React.useEffect(() => {
-    if (timerStatus === 'RUNNING') {
-      wakeLockAudioRef.current?.play().catch(e => console.error("Wake lock audio failed:", e));
-    } else {
-      wakeLockAudioRef.current?.pause();
-    }
-  }, [timerStatus]);
-
-  React.useEffect(() => {
-    const animate = () => {
-      const now = Date.now();
-      const elapsedMs = now - timerStartTimeRef.current;
-      const remainingMs = (totalDuration * 1000) - elapsedMs;
-
-      if (remainingMs <= 0) {
-        setAudioTrigger({ count: 6 }); 
-        if (autoRestart) {
-          handleTimeUpdate(totalDuration, true);
-        } else {
-          setTimerStatus('IDLE');
-          setTimeLeft(totalDuration);
-          setVisualPercentage((totalDuration / 3600) * 100);
-        }
-      } else {
-        setTimeLeft(Math.ceil(remainingMs / 1000));
-        setVisualPercentage((remainingMs / 1000 / 3600) * 100);
-
-        if (intervalBeep !== 0 && now >= nextIntervalBeepTimeRef.current) {
-          if (intervalType === 'beep') {
-            setAudioTrigger({ count: 2 });
-          } else {
-            speakTime();
-          }
-          nextIntervalBeepTimeRef.current = nextIntervalBeepTimeRef.current + intervalBeep * 60 * 1000;
-        }
-      }
-      animationFrameId.current = requestAnimationFrame(animate);
-    };
-
-    if (timerStatus === 'RUNNING') {
-      animationFrameId.current = requestAnimationFrame(animate);
-    }
-
-    return () => {
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-    };
-  }, [timerStatus, totalDuration, autoRestart, intervalBeep, intervalType, handleTimeUpdate]);
-  
-  React.useEffect(() => {
-    if (timerStatus === 'RUNNING' && intervalBeep > 0) {
-      const elapsedMs = Date.now() - timerStartTimeRef.current;
-      const intervalsPassed = Math.floor(elapsedMs / (intervalBeep * 60 * 1000));
-      const nextBeepElapsed = (intervalsPassed + 1) * (intervalBeep * 60 * 1000);
-      nextIntervalBeepTimeRef.current = timerStartTimeRef.current + nextBeepElapsed;
-    }
-  }, [timerStatus, intervalBeep, totalDuration]);
-
-  const pauseTimer = () => {
-    window.speechSynthesis.cancel();
-    timeRemainingOnPauseRef.current = (totalDuration * 1000) - (Date.now() - timerStartTimeRef.current);
-    setTimerStatus('PAUSED');
-  };
-
-  const handleDisplayClick = () => {
-    // Always play chime on interaction
-    playUiChime();
-    
-    // On the first user interaction, if speech is enabled, speak the time
-    // to satisfy mobile browser autoplay policies.
-    if (intervalType === 'speech' && !speechInteractionMadeRef.current) {
-      speakTime();
-      speechInteractionMadeRef.current = true;
-    }
-
-    if (timerStatus === 'RUNNING') {
-      pauseTimer();
-    } else { 
-      if (timerStatus === 'PAUSED') {
-        const elapsedOnPause = (totalDuration * 1000) - timeRemainingOnPauseRef.current;
-        timerStartTimeRef.current = Date.now() - elapsedOnPause;
-        timeRemainingOnPauseRef.current = 0; // Reset after use
-      } else {
-        timerStartTimeRef.current = Date.now();
-        setTimeLeft(totalDuration);
-      }
-      setTimerStatus('RUNNING');
-    }
-  };
-
-  // Hybrid Wake Lock Logic
-  React.useEffect(() => {
-    const acquireWakeLock = async () => {
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLockSentinelRef.current = await navigator.wakeLock.request('screen');
-        } catch (err) {
-          console.error('Failed to acquire screen wake lock, falling back to audio.', err);
-          if (wakeLockAudioRef.current) {
-            wakeLockAudioRef.current.play().catch(e => console.error("Wake lock audio fallback failed:", e));
-          }
-        }
-      } else {
-        if (wakeLockAudioRef.current) {
-          wakeLockAudioRef.current.play().catch(e => console.error("Wake lock audio fallback failed:", e));
-        }
-      }
-    };
-
-    const releaseWakeLock = async () => {
-      if (wakeLockSentinelRef.current) {
-        await wakeLockSentinelRef.current.release();
-        wakeLockSentinelRef.current = null;
-      }
-      wakeLockAudioRef.current?.pause();
-    };
-    
-    if (timerStatus === 'RUNNING') {
-      acquireWakeLock();
-    } else {
-      releaseWakeLock();
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && timerStatus === 'RUNNING') {
-        acquireWakeLock();
-      } else {
-        releaseWakeLock();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      releaseWakeLock(); // Clean up on component unmount
-    };
-  }, [timerStatus]);
-
-  // Mobile speech synthesis fix: wait for voices, set English voice
+  /**
+   * Pre-loads speech synthesis voices and provides a function to speak the current time.
+   * This is wrapped in a ref to handle asynchronous voice loading on mobile.
+   */
   const voicesRef = React.useRef<SpeechSynthesisVoice[] | null>(null);
   React.useEffect(() => {
     const loadVoices = () => {
@@ -259,22 +80,103 @@ export default function TimerPage() {
     };
   }, []);
 
-  const speakTime = () => {
+  const speakTime = React.useCallback(() => {
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
     const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const utterance = new SpeechSynthesisUtterance(`The time is ${time}`);
     const voices = voicesRef.current || window.speechSynthesis.getVoices();
-    // Prefer English voice
     const enVoice = voices.find(v => v.lang && v.lang.startsWith('en'));
     if (enVoice) utterance.voice = enVoice;
     window.speechSynthesis.speak(utterance);
+  }, []);
+
+  /**
+   * Handles updates to the timer's total duration.
+   * This is called when the user drags the visual timer.
+   * @param newTimeInSeconds - The new duration in seconds.
+   * @param fromAutoRestart - Flag to prevent playing a UI chime on auto-restarts.
+   */
+  const handleTimeUpdate = React.useCallback((newTimeInSeconds: number, fromAutoRestart = false) => {
+    window.speechSynthesis.cancel();
+    if (!fromAutoRestart) playUiChime();
+    
+    // A duration of 0 (dragging to 12 o'clock) is treated as a full hour.
+    const newDuration = newTimeInSeconds === 0 ? 3600 : newTimeInSeconds;
+    
+    timeRemainingOnPauseRef.current = 0;
+    setTotalDuration(newDuration);
+    setTimeLeft(newDuration);
+    
+    if (visualTimerRef.current) {
+      visualTimerRef.current.style.setProperty('--percentage', `${(newDuration / 3600) * 100}`);
+    }
+    
+    timerStartTimeRef.current = Date.now();
+    setTimerStatus('RUNNING');
+  }, [playUiChime]);
+
+
+  // --- Custom Hooks ---
+
+  useWakeLock(timerStatus);
+  
+  useTimerAnimation({
+    timerStatus,
+    totalDuration,
+    autoRestart,
+    intervalBeep,
+    intervalType,
+    timeLeft,
+    timerStartTime: timerStartTimeRef,
+    visualTimerRef: visualTimerRef as React.MutableRefObject<HTMLDivElement>,
+    setAudioTrigger,
+    handleTimeUpdate,
+    setTimerStatus,
+    setTimeLeft,
+    speakTime
+  });
+  
+  /**
+   * Handles the primary user interaction: clicking the central display.
+   * This toggles the timer between RUNNING, PAUSED, and IDLE states.
+   */
+  const handleDisplayClick = () => {
+    playUiChime();
+    
+    // On the first user interaction, if speech is enabled, speak the time
+    // to satisfy mobile browser autoplay policies for speech synthesis.
+    if (intervalType === 'speech' && !speechInteractionMadeRef.current) {
+      speakTime();
+      speechInteractionMadeRef.current = true;
+    }
+
+    if (timerStatus === 'RUNNING') {
+      // Pause the timer
+      timeRemainingOnPauseRef.current = (totalDuration * 1000) - (Date.now() - timerStartTimeRef.current);
+      setTimerStatus('PAUSED');
+    } else { 
+      // Resume from PAUSED
+      if (timerStatus === 'PAUSED') {
+        const elapsedOnPause = (totalDuration * 1000) - timeRemainingOnPauseRef.current;
+        timerStartTimeRef.current = Date.now() - elapsedOnPause;
+        timeRemainingOnPauseRef.current = 0; // Reset after use
+      } else { // Start from IDLE
+        timerStartTimeRef.current = Date.now();
+        setTimeLeft(totalDuration);
+      }
+      setTimerStatus('RUNNING');
+    }
   };
 
+  /**
+   * This effect ensures that if a user enables speech synthesis via the settings menu
+   * before any other interaction, that action counts as the required user gesture
+   * to allow speech to play.
+   */
+  const isInitialMount = React.useRef(true);
   React.useEffect(() => {
-    // This handles the case where the user enables speech via settings
-    // before any other interaction. This action counts as the user gesture.
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -284,10 +186,18 @@ export default function TimerPage() {
       speakTime();
       speechInteractionMadeRef.current = true;
     }
-  }, [intervalType]);
+  }, [intervalType, speakTime]);
+  
+  const handleIntervalTypePreview = (type: IntervalType) => {
+    if (type === 'beep') {
+      setAudioTrigger({ count: 2, volume: 1.0 });
+    } else {
+      speakTime();
+    }
+  }
 
   return (
-    <div className="bg-background text-foreground h-[var(--app-height)] w-screen flex flex-col overflow-hidden antialiased">
+    <div className="bg-background text-foreground h-full w-full flex flex-col antialiased">
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <Settings
           onOpen={playUiChime}
@@ -300,6 +210,7 @@ export default function TimerPage() {
           onIntervalBeepChange={setIntervalBeep}
           intervalType={intervalType}
           onIntervalTypeChange={setIntervalType}
+          onIntervalTypePreview={handleIntervalTypePreview}
         />
         <Button variant="outline" size="icon" onClick={() => { setIsRotated(!isRotated); playUiChime(); }}>
           {isRotated ? (
@@ -309,12 +220,6 @@ export default function TimerPage() {
           )}
           <span className="sr-only">Rotate Timer</span>
         </Button>
-        <a href="https://github.com/snagarohit/beepbeep" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" size="icon">
-            <Github className={`h-[1.2rem] w-[1.2rem] transition-transform duration-300 ${isRotated ? 'rotate-90' : ''}`} />
-            <span className="sr-only">View on GitHub</span>
-          </Button>
-        </a>
         <ThemeToggle onThemeChange={playUiChime} isRotated={isRotated} />
         <FullscreenToggle onToggle={playUiChime} isRotated={isRotated} />
       </div>
@@ -327,8 +232,9 @@ export default function TimerPage() {
           }}
         >
           <VisualTimer 
+            ref={visualTimerRef}
             isRotated={isRotated}
-            percentage={visualPercentage}
+            percentage={(totalDuration / 3600) * 100}
             onTimeChange={handleTimeUpdate}
             onDrag={() => playUiChime(0.125)}
           />
@@ -341,7 +247,7 @@ export default function TimerPage() {
       </main>
 
       <footer className="w-full text-center p-4 text-xs text-muted-foreground">
-        <b>Designed</b> in <b>Cupertino</b> | <b>Naga Samineni</b>
+        A <b>Beautiful Timer</b> | Designed in <b>Cupertino</b> | <b>Naga Samineni</b>
       </footer>
 
       <AudioPlayer 

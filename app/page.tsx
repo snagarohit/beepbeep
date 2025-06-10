@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Github, RotateCw, RotateCcw } from 'lucide-react';
 import useLocalStorage from "@/hooks/use-local-storage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
@@ -8,6 +9,7 @@ import { Settings, IntervalValue, IntervalType } from "@/components/settings";
 import { VisualTimer } from "@/components/visual-timer";
 import { DigitalDisplay } from "@/components/digital-display";
 import { AudioPlayer, AudioTriggerPayload } from "@/components/audio-player";
+import { Button } from "@/components/ui/button";
 
 export default function TimerPage() {
   const [totalDuration, setTotalDuration] = React.useState<number>(2700);
@@ -21,6 +23,7 @@ export default function TimerPage() {
   const [intervalBeep, setIntervalBeep] = useLocalStorage<IntervalValue>('timer-intervalBeep', 5);
   const [intervalType, setIntervalType] = useLocalStorage<IntervalType>('timer-intervalType', 'beep');
   const [uiChime, setUiChime] = useLocalStorage('timer-uiChime', true);
+  const [isRotated, setIsRotated] = React.useState(false);
 
   const animationFrameId = React.useRef<number | null>(null);
   const timerStartTimeRef = React.useRef<number>(0);
@@ -288,6 +291,7 @@ export default function TimerPage() {
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <Settings
           onOpen={playUiChime}
+          isRotated={isRotated}
           autoRestart={autoRestart}
           onAutoRestartChange={setAutoRestart}
           uiChime={uiChime}
@@ -297,13 +301,33 @@ export default function TimerPage() {
           intervalType={intervalType}
           onIntervalTypeChange={setIntervalType}
         />
-        <ThemeToggle onThemeChange={playUiChime} />
-        <FullscreenToggle onToggle={playUiChime} />
+        <Button variant="outline" size="icon" onClick={() => { setIsRotated(!isRotated); playUiChime(); }}>
+          {isRotated ? (
+            <RotateCcw className="h-[1.2rem] w-[1.2rem] transition-transform duration-300" />
+          ) : (
+            <RotateCw className="h-[1.2rem] w-[1.2rem] transition-transform duration-300" />
+          )}
+          <span className="sr-only">Rotate Timer</span>
+        </Button>
+        <a href="https://github.com/snagarohit/beepbeep" target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="icon">
+            <Github className={`h-[1.2rem] w-[1.2rem] transition-transform duration-300 ${isRotated ? 'rotate-90' : ''}`} />
+            <span className="sr-only">View on GitHub</span>
+          </Button>
+        </a>
+        <ThemeToggle onThemeChange={playUiChime} isRotated={isRotated} />
+        <FullscreenToggle onToggle={playUiChime} isRotated={isRotated} />
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center">
+        <div 
+          className="relative w-[min(80vw,80vh,500px)] h-[min(80vw,80vh,500px)] flex items-center justify-center transition-transform duration-300"
+          style={{
+            transform: isRotated ? 'rotate(90deg)' : 'rotate(0deg)',
+          }}
+        >
           <VisualTimer 
+            isRotated={isRotated}
             percentage={visualPercentage}
             onTimeChange={handleTimeUpdate}
             onDrag={() => playUiChime(0.125)}

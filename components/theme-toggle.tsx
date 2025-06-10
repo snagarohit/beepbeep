@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button"
 
 interface ThemeToggleProps {
   onThemeChange: () => void;
+  isRotated: boolean;
 }
 
-export function ThemeToggle({ onThemeChange }: ThemeToggleProps) {
+export function ThemeToggle({ onThemeChange, isRotated }: ThemeToggleProps) {
   const { setTheme, theme } = useTheme()
 
   const toggleTheme = () => {
@@ -21,8 +22,8 @@ export function ThemeToggle({ onThemeChange }: ThemeToggleProps) {
 
   return (
     <Button variant="outline" size="icon" onClick={toggleTheme}>
-      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <Sun className={`h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 ${isRotated ? 'rotate-90' : ''}`} />
+      <Moon className={`absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 ${isRotated ? 'rotate-90' : ''}`} />
       <span className="sr-only">Toggle theme</span>
     </Button>
   )

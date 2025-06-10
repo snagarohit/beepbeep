@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 
 interface FullscreenToggleProps {
   onToggle: () => void;
+  isRotated: boolean;
 }
 
-export function FullscreenToggle({ onToggle }: FullscreenToggleProps) {
+export function FullscreenToggle({ onToggle, isRotated }: FullscreenToggleProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   React.useEffect(() => {
@@ -36,9 +37,9 @@ export function FullscreenToggle({ onToggle }: FullscreenToggleProps) {
   return (
     <Button variant="outline" size="icon" onClick={handleToggle}>
       {isFullscreen ? (
-        <Minimize className="h-[1.2rem] w-[1.2rem]" />
+        <Minimize className={`h-[1.2rem] w-[1.2rem] transition-transform duration-300 ${isRotated ? 'rotate-90' : ''}`} />
       ) : (
-        <Maximize className="h-[1.2rem] w-[1.2rem]" />
+        <Maximize className={`h-[1.2rem] w-[1.2rem] transition-transform duration-300 ${isRotated ? 'rotate-90' : ''}`} />
       )}
       <span className="sr-only">Toggle fullscreen</span>
     </Button>

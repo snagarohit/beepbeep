@@ -22,6 +22,7 @@ export type IntervalType = 'beep' | 'speech';
 
 interface SettingsProps {
   onOpen: () => void;
+  isRotated: boolean;
   // Timer Settings
   autoRestart: boolean;
   onAutoRestartChange: (checked: boolean) => void;
@@ -36,6 +37,7 @@ interface SettingsProps {
 
 export function Settings({
   onOpen,
+  isRotated,
   autoRestart,
   onAutoRestartChange,
   uiChime,
@@ -62,7 +64,7 @@ export function Settings({
     <Popover onOpenChange={() => { if(uiChime) onOpen()}}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="icon">
-          <Wrench className="h-[1.2rem] w-[1.2rem]" />
+          <Wrench className={`h-[1.2rem] w-[1.2rem] transition-transform duration-300 ${isRotated ? 'rotate-90' : ''}`} />
           <span className="sr-only">Open settings</span>
         </Button>
       </PopoverTrigger>
@@ -71,7 +73,7 @@ export function Settings({
           <div className="space-y-1">
             <h4 className="font-medium leading-none">Settings</h4>
             <p className="text-sm text-muted-foreground">
-              Configure timer and audio behavior.
+              Configure timer, audio, and interface behavior.
             </p>
           </div>
           <Separator />
@@ -79,15 +81,15 @@ export function Settings({
             <Label className="font-semibold text-base">Timer</Label>
             <div className="flex flex-col space-y-2 p-2 rounded-lg bg-muted">
               <div className="flex items-center justify-between">
-                 <Label htmlFor="auto-restart-switch">Loop</Label>
+                 <Label htmlFor="auto-restart-switch">Loop Timer</Label>
                   <Switch
                     id="auto-restart-switch"
                     checked={autoRestart}
                     onCheckedChange={(c) => { onAutoRestartChange(c); onOpen(); }}
                   />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Automatically restart the timer when it ends.
+              <p className="text-xs text-muted-foreground pt-1">
+                When the timer completes, it will automatically restart for the same duration.
               </p>
             </div>
           </div>
@@ -102,15 +104,18 @@ export function Settings({
                   onCheckedChange={(c) => { onUiChimeChange(c); onOpen(); }}
                 />
               </div>
-               <p className="text-xs text-muted-foreground">
-                Play a short sound on UI interactions.
+               <p className="text-xs text-muted-foreground pt-1">
+                Plays a short sound when you interact with buttons and controls.
               </p>
             </div>
             <div className="grid gap-4 p-2 rounded-lg bg-muted">
               <div className="flex justify-between items-baseline">
-                <Label>Interval Beep</Label>
+                <Label>Interval Alert</Label>
                 <span className="text-sm font-bold text-foreground">{stepLabels[currentStepIndex]}</span>
               </div>
+               <p className="text-xs text-muted-foreground pb-2">
+                Get an alert at a recurring interval. Select &apos;Off&apos; to disable.
+              </p>
               <Slider
                 value={[currentStepIndex]}
                 min={0}
@@ -132,8 +137,8 @@ export function Settings({
                   <span>Speech</span>
                 </Label>
               </RadioGroup>
-               <p className="text-xs text-muted-foreground -mt-2">
-                Play a sound or speak the time at a recurring interval.
+               <p className="text-xs text-muted-foreground pt-2">
+                Choose whether the interval alert is a simple beep or a spoken announcement of the current time.
               </p>
             </div>
           </div>

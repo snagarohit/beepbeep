@@ -5,12 +5,13 @@ import { ClockMarkings } from './clock-markings';
 import { InnerMarkings } from './inner-markings';
 
 interface VisualTimerProps {
+  isRotated: boolean;
   percentage: number;
   onTimeChange: (newTime: number) => void;
   onDrag: () => void;
 }
 
-export function VisualTimer({ percentage, onTimeChange, onDrag }: VisualTimerProps) {
+export function VisualTimer({ isRotated, percentage, onTimeChange, onDrag }: VisualTimerProps) {
   const timerRef = React.useRef<HTMLDivElement>(null);
   const lastMinuteRef = React.useRef<number | null>(null);
   
@@ -20,7 +21,24 @@ export function VisualTimer({ percentage, onTimeChange, onDrag }: VisualTimerPro
     const rect = timerRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const angle = Math.atan2(clientY - centerY, clientX - centerX) + Math.PI / 2;
+    
+    let adjustedClientX = clientX;
+    let adjustedClientY = clientY;
+    
+    // If rotated, transform coordinates back to their original orientation
+    if (isRotated) {
+      // 1. Translate point to origin
+      const translatedX = clientX - centerX;
+      const translatedY = clientY - centerY;
+      // 2. Apply reverse rotation (-90 degrees)
+      const rotatedX = translatedY;
+      const rotatedY = -translatedX;
+      // 3. Translate point back
+      adjustedClientX = rotatedX + centerX;
+      adjustedClientY = rotatedY + centerY;
+    }
+
+    const angle = Math.atan2(adjustedClientY - centerY, adjustedClientX - centerX) + Math.PI / 2;
     
     let degrees = (angle * 180) / Math.PI;
     if (degrees < 0) degrees += 360;

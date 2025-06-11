@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/utils/utils";
+import ViewportHeightSetter from "@/components/viewport-height";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://beautifultimer.samineni.me"),
@@ -58,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-[100dvh] overflow-hidden">
+    <html lang="en" suppressHydrationWarning style={{ height: 'var(--app-height)' }} className="overflow-hidden">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script
@@ -90,6 +91,7 @@ export default function RootLayout({
         />
       </head>
       <body
+        style={{ height: 'var(--app-height)' }}
         className={cn(
           "h-full overflow-hidden font-sans antialiased",
           GeistSans.variable,
@@ -102,6 +104,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ViewportHeightSetter />
           {children}
         </ThemeProvider>
       </body>

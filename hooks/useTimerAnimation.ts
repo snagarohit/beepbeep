@@ -110,17 +110,33 @@ export function useTimerAnimation({
     let eventType: 'final' | 'interval' = 'final';
 
     if (intervalBeep > 0) {
-      const intervalMs = intervalBeep * 60 * 1000;
-      const remainder = elapsedMs % intervalMs;
-      let nextIntervalTimeoutMs = intervalMs - remainder;
-      if (remainder === 0) {
-        nextIntervalTimeoutMs = intervalMs; // Ensure we schedule the *next* interval, not immediate.
+      // Determine when the *next* real-world clock boundary occurs.
+      const unitMinutes = intervalBeep; // e.g. every 5 minutes
+
+      const nowDate = new Date(now);
+
+      // Zero-out seconds & milliseconds so we start calculations on a clean minute boundary.
+      nowDate.setSeconds(0, 0);
+
+      const currentMinutes = nowDate.getMinutes();
+
+      // Calculate the next minute value that is a multiple of the unit.
+      let nextBoundaryMinutes = Math.ceil((currentMinutes + (Date.now() - nowDate.getTime()) / 60000) / unitMinutes) * unitMinutes;
+
+      // If we overflow past the hour, adjust hours & minutes.
+      const nextBoundaryDate = new Date(nowDate);
+      if (nextBoundaryMinutes >= 60) {
+        nextBoundaryDate.setHours(nextBoundaryDate.getHours() + 1);
+        nextBoundaryMinutes = nextBoundaryMinutes % 60;
       }
-      if (elapsedMs + nextIntervalTimeoutMs < (totalDuration * 1000)) {
-        if (nextIntervalTimeoutMs < nextEventTimeoutMs) {
-          nextEventTimeoutMs = nextIntervalTimeoutMs;
-          eventType = 'interval';
-        }
+      nextBoundaryDate.setMinutes(nextBoundaryMinutes);
+
+      const intervalTimeoutMs = nextBoundaryDate.getTime() - now;
+
+      // Only use this interval event if it happens before the timer finishes.
+      if (intervalTimeoutMs > 50 && intervalTimeoutMs < nextEventTimeoutMs) {
+        nextEventTimeoutMs = intervalTimeoutMs;
+        eventType = 'interval';
       }
     }
 

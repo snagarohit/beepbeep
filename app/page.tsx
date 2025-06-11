@@ -23,8 +23,9 @@ import { useTimerAnimation } from "@/hooks/useTimerAnimation";
  */
 export default function TimerPage() {
   // Core timer state
-  const [totalDuration, setTotalDuration] = React.useState<number>(2700); // in seconds
-  const [timeLeft, setTimeLeft] = React.useState<number>(2700); // in seconds
+  const defaultDuration = 20 * 60; // 20 minutes in seconds
+  const [totalDuration, setTotalDuration] = React.useState<number>(defaultDuration);
+  const [timeLeft, setTimeLeft] = React.useState<number>(defaultDuration);
   const [timerStatus, setTimerStatus] = React.useState<'IDLE' | 'RUNNING' | 'PAUSED'>('IDLE');
   
   // Persisted settings using a custom hook for localStorage

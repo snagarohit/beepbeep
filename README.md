@@ -41,8 +41,7 @@ _Dark Mode: a pool of concentrated luminosity._
 • **Tailwind CSS** — Visual consistency at the speed of thought.  
 • **shadcn/ui** — Unopinionated, accessible primitives.  
 • **Framer Motion** — Motion that feels alive.  
-• **Web Audio API** — Sound sculpted in real-time.  
-• **Vercel** — Effortless global delivery.
+• **Web Audio API** — Sound sculpted in real-time.
 
 ---
 

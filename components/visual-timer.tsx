@@ -72,9 +72,7 @@ export const VisualTimer = React.forwardRef<HTMLDivElement, VisualTimerProps>(
       <div
         ref={ref}
         aria-label="Set timer duration by dragging or clicking the dial."
-        className="w-full h-full rounded-full relative cursor-grab active:cursor-grabbing
-                 shadow-[0_12px_48px_rgba(0,0,0,0.15)]
-                 dark:shadow-[0_12px_48px_rgba(255,255,255,0.08)]"
+        className="w-full h-full rounded-full relative cursor-grab active:cursor-grabbing"
         style={
           {
             '--percentage': percentage,

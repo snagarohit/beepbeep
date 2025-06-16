@@ -1,0 +1,48 @@
+# Beautiful Timer - The #1 Focus Timer for ADHD & Neurodiversity
+
+/* TEAM */
+Creator & Developer: Naga Samineni
+Contact: naga@samineni.me
+Twitter: @nagasamineni
+Location: Cupertino, California, USA
+Role: Digital Horologist & Neurospicy Engineer
+
+/* THANKS */
+The ADHD & neurodivergent community for inspiration and feedback
+Dr. Russell Barkley for ADHD research that informed the design
+The open source community for tools and libraries
+Everyone who believes in accessible, ad-free software
+
+/* SITE */
+Last update: 2024/12/19
+Language: English
+Doctype: HTML5
+IDE: Cursor, VS Code
+Technologies: Next.js, React, TypeScript, Tailwind CSS
+Fonts: Geist Sans, Geist Mono
+Icons: Lucide React
+Hosting: Vercel
+Repository: https://github.com/nagasamineni/beautiful-timer
+
+/* PHILOSOPHY */
+Beautiful Timer is crafted with the philosophy that the best tools
+disappear into the background, enabling rather than demanding attention.
+It's a gift to the neurospicy community - 100% free, ad-free, and
+built with obsessive attention to detail.
+
+No tracking. No ads. No subscriptions. Just pure focus.
+
+"Time is not a river flowing in one direction—it's an ocean, 
+and some of us are drowning. Beautiful Timer is a lighthouse."
+
+                            .-""""""-.
+                          .'          '.
+                         /   O      O   \
+                        :           `    :
+                        |                |
+                        :    \______/    :
+                         \                /
+                          '.            .'
+                            '-.____..-'
+
+                    Made with ❤️ for neurospicy minds 

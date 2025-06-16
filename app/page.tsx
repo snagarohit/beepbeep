@@ -1,16 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { RotateCw, RotateCcw } from 'lucide-react';
+import { useTheme } from "next-themes";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 // Component Imports
-import { ThemeToggle } from "@/components/theme-toggle";
-import { FullscreenToggle } from "@/components/fullscreen-toggle";
-import { Settings, IntervalValue, IntervalType } from "@/components/settings";
+import { DisplaySettings } from "@/components/display-settings";
+import { Settings, IntervalValue } from "@/components/settings";
+import { AudioSettings } from "@/components/audio-settings";
 import { VisualTimer } from "@/components/visual-timer";
 import { DigitalDisplay } from "@/components/digital-display";
 import { AudioPlayer, AudioTriggerPayload } from "@/components/audio-player";
-import { Button } from "@/components/ui/button";
 
 // Hook Imports
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -18,30 +19,54 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { useTimerAnimation } from "@/hooks/useTimerAnimation";
 
 /**
- * The main page component for the BeepBeep timer application.
- * It orchestrates the entire application state and renders all sub-components.
+ * Component to handle URL search parameters
  */
-export default function TimerPage() {
+function TimerPageContent() {
+  // URL parameters
+  const searchParams = useSearchParams();
+  
   // Core timer state
   const defaultDuration = 20 * 60; // 20 minutes in seconds
-  const [totalDuration, setTotalDuration] = React.useState<number>(defaultDuration);
-  const [timeLeft, setTimeLeft] = React.useState<number>(defaultDuration);
-  const [timerStatus, setTimerStatus] = React.useState<'IDLE' | 'RUNNING' | 'PAUSED'>('IDLE');
+  
+  // Check for duration parameter in URL (e.g., /?duration=25 for 25 minutes)
+  const urlDuration = React.useMemo(() => {
+    const durationParam = searchParams.get('duration');
+    if (durationParam) {
+      const minutes = parseInt(durationParam, 10);
+      if (!isNaN(minutes) && minutes > 0 && minutes <= 60) {
+        return minutes * 60; // Convert minutes to seconds
+      }
+    }
+    return null;
+  }, [searchParams]);
+  
+  const [totalDuration, setTotalDuration] = useLocalStorage('timer-totalDuration', urlDuration || defaultDuration);
+  const [timeLeft, setTimeLeft] = useLocalStorage('timer-timeLeft', urlDuration || defaultDuration);
+  const [timerStatus, setTimerStatus] = useLocalStorage<'IDLE' | 'RUNNING' | 'PAUSED'>('timer-status', 'IDLE');
   
   // Persisted settings using a custom hook for localStorage
   const [autoRestart, setAutoRestart] = useLocalStorage('timer-autoRestart', true);
-  const [intervalBeep, setIntervalBeep] = useLocalStorage<IntervalValue>('timer-intervalBeep', 5);
-  const [intervalType, setIntervalType] = useLocalStorage<IntervalType>('timer-intervalType', 'beep');
+  const [intervalChime, setIntervalChime] = useLocalStorage<IntervalValue>('timer-intervalChime', 5);
+  const [intervalSound, setIntervalSound] = useLocalStorage<'beep' | 'speech'>('timer-intervalSound', 'beep');
   const [uiChime, setUiChime] = useLocalStorage('timer-uiChime', true);
 
   // UI state
-  const [isRotated, setIsRotated] = React.useState(false);
-  const [audioTrigger, setAudioTrigger] = React.useState<AudioTriggerPayload | null>(null);
+  const [isRotated, setIsRotated] = useLocalStorage('timer-isRotated', false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [audioTrigger, setAudioTrigger] = useLocalStorage<AudioTriggerPayload | null>('audio-trigger', null);
+
+  // External hook state
+  const { theme, setTheme } = useTheme();
 
   // --- Refs for managing state within animation loops and event handlers ---
   
   /** Ref to store the system timestamp when the timer was started or resumed. */
   const timerStartTimeRef = React.useRef<number>(0);
+  const [timerStartTime, setTimerStartTime] = useLocalStorage('timer-startTime', 0);
+  React.useEffect(() => {
+      timerStartTimeRef.current = timerStartTime;
+  }, [timerStartTime]);
+
 
   /** Ref to store the remaining time when the timer is paused. */
   const timeRemainingOnPauseRef = React.useRef<number>(0);
@@ -52,15 +77,35 @@ export default function TimerPage() {
   /** Ref to the main visual timer DOM element. */
   const visualTimerRef = React.useRef<HTMLDivElement>(null);
   
-  /**
-   * Plays a UI chime sound if enabled.
-   * @param volume - Optional volume level for the chime.
-   */
-  const playUiChime = React.useCallback((volume?: number) => {
+  // --- State-driven Handlers ---
+  
+  const playInteractionSound = React.useCallback((volume?: number) => {
     if (uiChime) {
-      setAudioTrigger({ count: 1, volume: volume ?? 0.5 });
+      setAudioTrigger({ count: 1, volume: volume ?? 0.125 });
     }
-  }, [uiChime]);
+  }, [uiChime, setAudioTrigger]);
+  
+  const handleToggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+    playInteractionSound();
+  };
+  
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        alert(`Error enabling full-screen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+    playInteractionSound(0.5);
+  };
+  
+  React.useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
 
   /**
    * Pre-loads speech synthesis voices and provides a function to speak the current time.
@@ -101,7 +146,7 @@ export default function TimerPage() {
    */
   const handleTimeUpdate = React.useCallback((newTimeInSeconds: number, fromAutoRestart = false) => {
     window.speechSynthesis.cancel();
-    if (!fromAutoRestart) playUiChime();
+    if (!fromAutoRestart) playInteractionSound(0.5);
     
     // A duration of 0 (dragging to 12 o'clock) is treated as a full hour.
     const newDuration = newTimeInSeconds === 0 ? 3600 : newTimeInSeconds;
@@ -114,10 +159,9 @@ export default function TimerPage() {
       visualTimerRef.current.style.setProperty('--percentage', `${(newDuration / 3600) * 100}`);
     }
     
-    timerStartTimeRef.current = Date.now();
+    setTimerStartTime(Date.now());
     setTimerStatus('RUNNING');
-  }, [playUiChime]);
-
+  }, [playInteractionSound, setTotalDuration, setTimeLeft, setTimerStartTime, setTimerStatus]);
 
   // --- Custom Hooks ---
 
@@ -127,8 +171,8 @@ export default function TimerPage() {
     timerStatus,
     totalDuration,
     autoRestart,
-    intervalBeep,
-    intervalType,
+    intervalChime,
+    intervalSound,
     timeLeft,
     timerStartTime: timerStartTimeRef,
     visualTimerRef: visualTimerRef as React.MutableRefObject<HTMLDivElement>,
@@ -144,11 +188,11 @@ export default function TimerPage() {
    * This toggles the timer between RUNNING, PAUSED, and IDLE states.
    */
   const handleDisplayClick = () => {
-    playUiChime();
+    playInteractionSound(0.5);
     
     // On the first user interaction, if speech is enabled, speak the time
     // to satisfy mobile browser autoplay policies for speech synthesis.
-    if (intervalType === 'speech' && !speechInteractionMadeRef.current) {
+    if (intervalSound === 'speech' && !speechInteractionMadeRef.current) {
       speakTime();
       speechInteractionMadeRef.current = true;
     }
@@ -161,15 +205,47 @@ export default function TimerPage() {
       // Resume from PAUSED
       if (timerStatus === 'PAUSED') {
         const elapsedOnPause = (totalDuration * 1000) - timeRemainingOnPauseRef.current;
-        timerStartTimeRef.current = Date.now() - elapsedOnPause;
+        setTimerStartTime(Date.now() - elapsedOnPause);
         timeRemainingOnPauseRef.current = 0; // Reset after use
       } else { // Start from IDLE
-        timerStartTimeRef.current = Date.now();
+        setTimerStartTime(Date.now());
         setTimeLeft(totalDuration);
       }
       setTimerStatus('RUNNING');
     }
   };
+
+  /**
+   * Handle URL duration parameter - if present, override stored duration
+   */
+  React.useEffect(() => {
+    if (urlDuration && urlDuration !== totalDuration) {
+      setTotalDuration(urlDuration);
+      setTimeLeft(urlDuration);
+      if (visualTimerRef.current) {
+        visualTimerRef.current.style.setProperty('--percentage', `${(urlDuration / 3600) * 100}`);
+      }
+    }
+  }, [urlDuration, totalDuration, setTotalDuration, setTimeLeft]);
+
+  /**
+   * On initial load, always reset to a clean, idle state, honoring the user's saved total duration.
+   * This ensures that reloading the page while timer is running loads as if it's the first time,
+   * except honoring the settings and last set duration.
+   */
+  React.useEffect(() => {
+    // Always reset to idle state on page load, regardless of previous state
+    setTimeLeft(totalDuration);
+    setTimerStatus('IDLE');
+    setTimerStartTime(0);
+    timeRemainingOnPauseRef.current = 0;
+    
+    // Reset visual timer to match the total duration
+    if (visualTimerRef.current) {
+      visualTimerRef.current.style.setProperty('--percentage', `${(totalDuration / 3600) * 100}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * This effect ensures that if a user enables speech synthesis via the settings menu
@@ -183,13 +259,13 @@ export default function TimerPage() {
       return;
     }
 
-    if (intervalType === 'speech' && !speechInteractionMadeRef.current) {
+    if (intervalSound === 'speech' && !speechInteractionMadeRef.current) {
       speakTime();
       speechInteractionMadeRef.current = true;
     }
-  }, [intervalType, speakTime]);
+  }, [intervalSound, speakTime]);
   
-  const handleIntervalTypePreview = (type: IntervalType) => {
+  const handleIntervalSoundPreview = (type: 'beep' | 'speech') => {
     if (type === 'beep') {
       setAudioTrigger({ count: 2, volume: 1.0 });
     } else {
@@ -198,31 +274,33 @@ export default function TimerPage() {
   }
 
   return (
-    <div className="bg-background text-foreground h-full w-full flex flex-col antialiased">
+    <div className="bg-background text-foreground h-screen w-full flex flex-col antialiased overflow-hidden" style={{ height: 'var(--app-height)' }}>
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <Settings
-          onOpen={playUiChime}
+          onOpen={() => playInteractionSound(0.5)}
           isRotated={isRotated}
           autoRestart={autoRestart}
           onAutoRestartChange={setAutoRestart}
+        />
+        <AudioSettings
+          onOpen={() => playInteractionSound(0.5)}
+          isRotated={isRotated}
           uiChime={uiChime}
           onUiChimeChange={setUiChime}
-          intervalBeep={intervalBeep}
-          onIntervalBeepChange={setIntervalBeep}
-          intervalType={intervalType}
-          onIntervalTypeChange={setIntervalType}
-          onIntervalTypePreview={handleIntervalTypePreview}
+          intervalChime={intervalChime}
+          onIntervalChimeChange={setIntervalChime}
+          intervalSound={intervalSound}
+          onIntervalSoundChange={setIntervalSound}
+          onIntervalSoundPreview={handleIntervalSoundPreview}
         />
-        <Button variant="outline" size="icon" onClick={() => { setIsRotated(!isRotated); playUiChime(); }}>
-          {isRotated ? (
-            <RotateCcw className="h-[1.2rem] w-[1.2rem] transition-transform duration-300" />
-          ) : (
-            <RotateCw className="h-[1.2rem] w-[1.2rem] transition-transform duration-300" />
-          )}
-          <span className="sr-only">Rotate Timer</span>
-        </Button>
-        <ThemeToggle onThemeChange={playUiChime} isRotated={isRotated} />
-        <FullscreenToggle onToggle={playUiChime} isRotated={isRotated} />
+        <DisplaySettings
+          onOpen={() => playInteractionSound(0.5)}
+          isRotated={isRotated}
+          onRotateToggle={() => { setIsRotated(!isRotated); playInteractionSound(0.5); }}
+          onThemeChange={handleToggleTheme}
+          isFullscreen={isFullscreen}
+          onFullscreenToggle={handleToggleFullscreen}
+        />
       </div>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
@@ -237,7 +315,7 @@ export default function TimerPage() {
             isRotated={isRotated}
             percentage={(totalDuration / 3600) * 100}
             onTimeChange={handleTimeUpdate}
-            onDrag={() => playUiChime(0.125)}
+            onDrag={() => playInteractionSound()}
           />
           <DigitalDisplay 
             timeLeft={timeLeft} 
@@ -248,7 +326,13 @@ export default function TimerPage() {
       </main>
 
       <footer className="w-full text-center p-4 text-xs text-muted-foreground">
-        A <b>Beautiful Timer</b> | Designed in <b>Cupertino</b> | <b>Naga Samineni</b>
+        <div className="flex items-center justify-center gap-2">
+          <span>A <b>Beautiful Timer</b></span>
+          <span className="text-muted-foreground/50">•</span>
+          <span>Designed in <b>Cupertino</b></span>
+          <span className="text-muted-foreground/50">•</span>
+          <span><b>Naga Samineni</b></span>
+        </div>
       </footer>
 
       <AudioPlayer 
@@ -256,5 +340,17 @@ export default function TimerPage() {
         onPlaybackComplete={() => setAudioTrigger(null)}
       />
     </div>
+  );
+}
+
+/**
+ * The main page component for the BeepBeep timer application.
+ * Wraps TimerPageContent in Suspense to handle useSearchParams.
+ */
+export default function TimerPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full bg-background" />}>
+      <TimerPageContent />
+    </Suspense>
   );
 }

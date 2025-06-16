@@ -1,21 +1,82 @@
 {
-  "name": "Beautiful Timer – The Minimalist Visual Timer",
-  "short_name": "BeautifulTimer",
-  "description": "Beautiful Timer is a simple, elegant, and effective visual timer designed to help you focus, stay on task, and celebrate every precious minute. Perfect for Pomodoro, ADHD, work intervals, and study sessions.",
+  "name": "Beautiful Timer: The #1 Focus Timer for ADHD & Neurodiversity",
+  "short_name": "Beautiful Timer",
+  "description": "Beautiful Timer is a stunning, 100% free visual timer recommended by therapists for ADHD, anxiety, and neurodivergent minds. It eliminates distraction, improves concentration, and helps you enter a state of deep work.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0c0a09",
-  "theme_color": "#0c0a09",
-  "icons": [
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "en-US",
+  "categories": ["productivity", "health", "utilities", "lifestyle"],
+  "screenshots": [
     {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Beautiful Timer main interface in wide format"
     },
     {
-      "src": "/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/screenshot-narrow.png", 
+      "sizes": "640x1136",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Beautiful Timer mobile interface"
     }
-  ]
+  ],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start 25min Focus Session",
+      "short_name": "Pomodoro",
+      "description": "Start a 25-minute Pomodoro focus session",
+      "url": "/?duration=25",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Start 5min Break",
+      "short_name": "Break",
+      "description": "Start a 5-minute break timer",
+      "url": "/?duration=5",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Origin Story",
+      "short_name": "Story",
+      "description": "Read the craftsmanship story behind Beautiful Timer",
+      "url": "/origin",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "any"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
 } 

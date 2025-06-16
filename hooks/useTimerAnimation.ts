@@ -1,15 +1,15 @@
 "use client";
 
 import * as React from 'react';
-import { IntervalType, IntervalValue } from '@/components/settings';
+import { IntervalValue, IntervalType } from '@/components/settings';
 import { AudioTriggerPayload } from '@/components/audio-player';
 
 interface TimerAnimationProps {
   timerStatus: 'IDLE' | 'RUNNING' | 'PAUSED';
   totalDuration: number;
   autoRestart: boolean;
-  intervalBeep: IntervalValue;
-  intervalType: IntervalType;
+  intervalChime: IntervalValue;
+  intervalSound: IntervalType;
   timeLeft: number;
   timerStartTime: React.MutableRefObject<number>;
   visualTimerRef: React.RefObject<HTMLDivElement>;
@@ -36,8 +36,8 @@ export function useTimerAnimation({
   timerStatus,
   totalDuration,
   autoRestart,
-  intervalBeep,
-  intervalType,
+  intervalChime,
+  intervalSound,
   timeLeft,
   timerStartTime,
   visualTimerRef,
@@ -54,8 +54,8 @@ export function useTimerAnimation({
     timerStatus,
     totalDuration,
     autoRestart,
-    intervalBeep,
-    intervalType,
+    intervalChime,
+    intervalSound,
     timeLeft,
     handleTimeUpdate,
     speakTime,
@@ -66,13 +66,13 @@ export function useTimerAnimation({
       timerStatus,
       totalDuration,
       autoRestart,
-      intervalBeep,
-      intervalType,
+      intervalChime,
+      intervalSound,
       timeLeft,
       handleTimeUpdate,
       speakTime,
     };
-  }, [timerStatus, totalDuration, autoRestart, intervalBeep, intervalType, timeLeft, handleTimeUpdate, speakTime]);
+  }, [timerStatus, totalDuration, autoRestart, intervalChime, intervalSound, timeLeft, handleTimeUpdate, speakTime]);
 
 
   const stopVisualInterval = React.useCallback(() => {
@@ -95,8 +95,8 @@ export function useTimerAnimation({
 
     const {
       totalDuration,
-      intervalBeep,
-      intervalType,
+      intervalChime,
+      intervalSound,
       speakTime,
     } = stateRef.current;
     
@@ -109,9 +109,9 @@ export function useTimerAnimation({
     let nextEventTimeoutMs: number = remainingMs;
     let eventType: 'final' | 'interval' = 'final';
 
-    if (intervalBeep > 0) {
+    if (intervalChime > 0) {
       // Determine when the *next* real-world clock boundary occurs.
-      const unitMinutes = intervalBeep; // e.g. every 5 minutes
+      const unitMinutes = intervalChime; // e.g. every 5 minutes
 
       const nowDate = new Date(now);
 
@@ -142,17 +142,23 @@ export function useTimerAnimation({
 
     audioTimeoutIdRef.current = setTimeout(() => {
       if (eventType === 'final') {
-        setAudioTrigger({ count: 6 });
+        // Final chime is always 6 beeps at full volume
+        setAudioTrigger({ count: 6, volume: 1.0 });
         if (stateRef.current.autoRestart) {
           stateRef.current.handleTimeUpdate(stateRef.current.totalDuration, true);
-          scheduleNextAudioEvent();
+          // Rescheduling is handled by the handleTimeUpdate -> RUNNING status change
         } else {
           setTimerStatus('IDLE');
           setTimeLeft(stateRef.current.totalDuration);
+          // Reset the visual timer so that it reflects the full duration again
+          if (visualTimerRef.current) {
+            const fullPercentage = (stateRef.current.totalDuration / 3600) * 100;
+            visualTimerRef.current.style.setProperty('--percentage', `${fullPercentage}`);
+          }
         }
       } else { // 'interval'
-        if (intervalType === 'beep') {
-          setAudioTrigger({ count: 2 });
+        if (intervalSound === 'beep') {
+          setAudioTrigger({ count: 2, volume: 1.0 });
         } else {
           speakTime();
         }
@@ -224,5 +230,5 @@ export function useTimerAnimation({
     if (timerStatus === 'RUNNING') {
       scheduleNextAudioEvent();
     }
-  }, [totalDuration, intervalBeep, intervalType, timerStatus, scheduleNextAudioEvent]);
+  }, [totalDuration, intervalChime, intervalSound, timerStatus, scheduleNextAudioEvent]);
 }

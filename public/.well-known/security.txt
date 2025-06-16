@@ -1,0 +1,13 @@
+Contact: mailto:naga@samineni.me
+Contact: https://samineni.me/contact
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://samineni.me/pgp-key.txt
+Preferred-Languages: en
+Canonical: https://beautifultimer.samineni.me/.well-known/security.txt
+Policy: https://beautifultimer.samineni.me/security-policy
+Acknowledgments: https://beautifultimer.samineni.me/security-acknowledgments
+
+# Beautiful Timer Security Information
+# We take security seriously and appreciate responsible disclosure.
+# This application processes no personal data and uses no tracking.
+# All data is stored locally in your browser only. 

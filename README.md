@@ -4,54 +4,150 @@ Beautiful Timer is not merely an application — it is an experience. Conceived 
 
 It began as a personal exploration: could a timer feel less like software and more like a beautifully weighted object? Could the gentle sweep of a second hand calm an anxious mind, helping neurodivergent thinkers slip effortlessly into focus? The result is an ad-free, delightfully tactile instrument that you will want to reach for again and again.
 
-![Beautiful Timer Light Mode](https://raw.githubusercontent.com/nagasam/beautiful-timer/main/public/screenshot-light.png)
-_Light Mode: an airy expanse of clarity._
-
-![Beautiful Timer Dark Mode](https://raw.githubusercontent.com/nagasam/beautiful-timer/main/public/screenshot-dark.png)
-_Dark Mode: a pool of concentrated luminosity._
-
 ---
 
 ## A Symphony of Considered Details
 
-1. **The Continuous Sweep**  
-   Traditional timers tick; Beautiful Timer glides. Rendered at the refresh rate of your display, the conic gradient moves with a buttery smoothness reminiscent of the seconds hand on a Rolex Oyster Perpetual. Time becomes something you feel, not just read.
+### **The Continuous Sweep**
+Traditional timers tick; Beautiful Timer glides. Rendered at 250ms intervals with buttery smooth CSS conic gradients, the progress arc moves with the fluid grace reminiscent of a mechanical watch's second hand. Time becomes something you feel, not just read.
 
-2. **Multi-Tab Harmony**  
-   Whether you are orchestrating deep work across myriad browser windows or simply checking email, Beautiful Timer remains in perfect sync by harnessing the browser's `storage` events. Change the duration in one tab and every other tab breathes in unison.
+### **Dual-Engine Architecture**
+Beautiful Timer employs a sophisticated dual-system approach for maximum reliability:
 
-3. **The Chorded Chime**  
-   Alerts should prompt, never jolt. Four pure sine waves — 4096 Hz, 8192 Hz, 12 288 Hz and 16 384 Hz — rise and fade in a concise duet, gently nudging you back to attention. Need something more verbal? Let the built-in speech synthesis fondly announce the time.
+- **Visual Engine**: 250ms interval updates for smooth UI rendering, intelligently paused when the tab is hidden to conserve battery
+- **Audio Heartbeat**: Precision `setTimeout` chain that runs reliably in the background, ensuring no alerts are ever missed
 
-4. **Tactile Control**  
-   Drag the dial, feel the resistance, set intention. `Math.atan2` translates your movement into minutes and seconds, allowing a form of direct manipulation that makes conventional drop-downs feel archaic.
+### **Multi-Tab Harmony**
+Whether you are orchestrating deep work across myriad browser windows or simply checking email, Beautiful Timer remains in perfect sync by harnessing the browser's `storage` events. Change the duration in one tab and every other tab breathes in unison.
 
-5. **Orientation Intelligence**  
-   On mobile, Beautiful Timer pirouettes gracefully. Icons rotate, geometry recalibrates, and the interface remains impeccably legible — portrait or landscape.
+### **Real-World Clock Intelligence**
+Interval alerts aren't tied to arbitrary timer durations—they align with actual clock boundaries. Set a 5-minute interval and receive gentle nudges at :00, :05, :10, :15, and so on, creating natural rhythm with the world around you.
 
-6. **Typography & Colour**  
-   We humanise pixels with Geist Sans and Geist Mono, paired with the warm neutrality of the `stone` palette in perceptually uniform OKLCH. The result is a canvas that disappears, letting your work shine.
+### **The Precision Chime**
+Alerts should prompt, never jolt. A pure 4096 Hz sine wave, generated through the Web Audio API with sophisticated mobile optimization and background audio management, rises and fades in a precise 100ms envelope. Need something more verbal? Let the built-in speech synthesis fondly announce the time.
 
----
+### **Tactile Control**
+Drag the dial, feel the resistance, set intention. `Math.atan2` translates your movement into minutes and seconds, with intelligent coordinate transformation for rotated displays. This form of direct manipulation makes conventional drop-downs feel archaic.
 
-### Built With
+### **Orientation Intelligence**
+On mobile, Beautiful Timer pirouettes gracefully. The entire interface can rotate 90 degrees with smooth CSS transitions, and all touch interactions are mathematically transformed to maintain perfect responsiveness in any orientation.
 
-• **Next.js & React** — A performant, server-first canvas.  
-• **TypeScript** — Reliability, articulated.  
-• **Tailwind CSS** — Visual consistency at the speed of thought.  
-• **shadcn/ui** — Unopinionated, accessible primitives.  
-• **Framer Motion** — Motion that feels alive.  
-• **Web Audio API** — Sound sculpted in real-time.
+### **Typography & Colour**
+We humanise pixels with Geist Sans and Geist Mono, paired with the warm neutrality of the `stone` palette in perceptually uniform OKLCH color space. The result is a canvas that disappears, letting your work shine.
 
 ---
 
-## Designed to Give, Not Take
+## Features That Actually Exist
 
+### **Flexible Timer Setting**
+- **Drag to set**: Direct manipulation of the visual dial for intuitive time setting
+- **URL parameters**: Launch with specific durations using `/?duration=25` (for 25 minutes)
+- **Range**: 1 minute to 60 minutes, with special handling for the full hour
+
+### **Audio System**
+- **Interval alerts**: Configurable real-world clock boundary chimes (1, 2, 5, 10, 15, 20, or 30 minutes)
+- **Dual audio modes**: Pure sine wave beeps or speech synthesis time announcements
+- **Interface chimes**: Soft audio feedback for UI interactions (optional)
+- **Mobile-optimized**: Sophisticated background audio management to ensure alerts work reliably
+
+### **Display Options**
+- **Theme support**: Seamless light/dark mode switching with system preference detection
+- **Rotation**: 90-degree interface rotation for alternative viewing angles
+- **Fullscreen mode**: Distraction-free focus sessions with native browser fullscreen API
+- **Responsive design**: Fluid scaling from mobile to desktop
+
+### **Smart Behavior**
+- **Auto-restart**: Optional seamless session looping for continuous productivity
+- **Wake lock**: Prevents device sleep during active timers
+- **Multi-tab sync**: Perfect synchronization across browser tabs via localStorage
+- **Page reload resilience**: Always starts fresh while remembering your preferences
+- **Background reliability**: Audio alerts work even when the tab is hidden
+
+### **Accessibility & ADHD-Friendly Design**
+- **Gentle interruptions**: Audio designed to guide rather than startle
+- **Visual continuity**: Smooth progress indication without harsh jumps
+- **Time blindness support**: Multiple feedback modes for different processing styles
+- **Touch-friendly**: Large, forgiving interaction targets
+
+---
+
+## Built With Obsessive Care
+
+### **Core Technologies**
+- **Next.js 15.3.3** — Server-first React framework with Turbo
+- **React 19** — Latest concurrent features for smooth interactions
+- **TypeScript** — Type safety and developer experience
+- **Tailwind CSS v4** — Utility-first styling with custom properties
+- **shadcn/ui** — Accessible, unstyled UI primitives
+- **next-themes** — Seamless theme management
+
+### **Specialized APIs**
+- **Web Audio API** — Precision audio synthesis and mobile optimization
+- **Speech Synthesis API** — Natural voice time announcements
+- **Screen Wake Lock API** — Preventing sleep during focus sessions
+- **Fullscreen API** — Distraction-free mode
+- **Page Visibility API** — Intelligent background behavior
+
+---
+
+## Quick Start
+
+### **Try It Now**
+Visit the timer and start focusing immediately. No installation required.
+
+### **Custom Duration**
+Launch with a specific duration: `/?duration=25` for a 25-minute session.
+
+### **Development**
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) and experience the craft.
+
+---
+
+## The Philosophy
+
+### **Designed to Give, Not Take**
 Beautiful Timer is forever *free*. No ads, no trackers, no dark patterns. It asks for nothing but your attention — and even that, only when you invite it.
 
-### If It Resonates
+### **For the Neurodivergent Community**
+Built by someone who experiences time differently, for everyone who does. Every interaction has been considered through the lens of ADHD, executive function challenges, and the need for gentle, supportive technology.
 
-Share it. Whisper its name to a friend wrestling with focus, tweet a screenshot of your tranquil workspace, or simply leave a star on the [GitHub repo](https://github.com/snagarohit/beautiful-timer). Word of mouth is how beautiful things travel.
+### **Craft Over Convenience**
+In an age of disposable software and planned obsolescence, Beautiful Timer represents a different approach: digital craft worthy of daily ritual. Every pixel considered, every interaction refined, every moment of your time treated as precious.
+
+---
+
+## Technical Architecture
+
+Beautiful Timer employs a thoughtfully decoupled architecture:
+
+### **State Management**
+- Custom localStorage hooks for persistence across sessions
+- React refs for high-frequency animation data
+- Controlled component patterns for settings synchronization
+
+### **Timer Logic**
+- Timestamp-based calculations for precision across browser tabs
+- Separate visual and audio update cycles for optimal performance
+- Page Visibility API integration for intelligent background behavior
+
+### **Audio Engineering**
+- Web Audio API with AudioContext lifecycle management
+- Background audio keepalive for mobile compatibility
+- Coordinate transformation mathematics for rotated touch interactions
+- Exponential gain curves for natural-sounding chimes
+
+---
+
+## If It Resonates
+
+Share it. Whisper its name to a friend wrestling with focus, tweet a screenshot of your tranquil workspace, or simply use it when you need time to slow down and become manageable.
+
+Beautiful Timer spreads through genuine recommendation — the way all beautiful things should.
 
 ---
 
@@ -60,35 +156,16 @@ Share it. Whisper its name to a friend wrestling with focus, tweet a screenshot 
 Clone, fork, embellish. Beautiful Timer was born of curiosity and is offered in the same spirit.
 
 ```bash
+git clone [repository-url]
+cd beautiful-timer
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` and make it yours.
+Every component is documented, every interaction is intentional, every technical decision is available for study and improvement.
 
 ---
 
 *Crafted with caffeine, curiosity, and a quiet reverence for the passing moment.*
 
-**No ads. No subscriptions. Just time, beautifully kept.**
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) and go wild.
-
-## The Bottom Line
-
-BeepBeep exists because I needed it to exist. If it helps you too, that's beautiful. If you know someone who might need a timer that actually gets it, send them here.
-
-We're all just trying to focus in a world that makes it really, really hard. Let's help each other out.
-
----
-
-*Built with love, caffeine, and the stubborn belief that tools should work for humans, not the other way around.*
-
-**No ads. No tracking. No bullshit. Just a timer that works.**
-
-
+**No ads. No subscriptions. No bullshit. Just time, beautifully kept.**
